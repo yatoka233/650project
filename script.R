@@ -188,7 +188,7 @@ new_data <- cbind(impute_result$outcome,
 
 
 summary(new_data)
-
+ ###
 
 
 
