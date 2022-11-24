@@ -23,7 +23,10 @@ set.seed(123)
 inputFile <- "Depression Data.xls"
 raw_data <- read_excel(inputFile, sheet=1, na='NA')
 raw_data <- as.data.frame(raw_data)
+
 summary(raw_data)
+
+
 
 ## Visualize missing values
 md.pattern(raw_data)
@@ -115,15 +118,45 @@ cate_na_idx <- c(2,6,8,9,10,11,16,17,18)# index of categorical with missing valu
 cate_full_idx <- c(3,5,7,19,20)
 other_idx <- c(1,21)
 
+
 getmode <- function(v) {
   uniqv <- unique(v)
   uniqv[which.max(tabulate(match(v, uniqv)))]
 }
+summary(raw_data)
+table(raw_data[,8])
+getmode(raw_data[,8])
 
 Imputation <- function(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full_idx){
   ## this function only work for our raw_data ##
   
+  ### Categorical data imputation
+  # Mode
+  cate_na_data <- raw_data[,cate_na_idx]
+  
+  mode_list <- c()
+  for( i in cate_na_idx){
+    mode_list <- c(mode_list, getmode(raw_data[,i]))
+  }
+  mode_list
+  for( i in 1:ncol(cate_na_data)){
+    ind=which(is.na(cate_na_data[,i]))
+    cate_na_data[ind,i]=mode_list[i]
+  }
+  
+  # head(cate_na_data,10)
+  
   ### Continuous data imputation
+  ## categorical to factor
+  raw_data$USBORN <- as.factor(raw_data$USBORN)
+  raw_data$MARSTAT4 <- as.factor(raw_data$MARSTAT4)
+  raw_data$KHYPER41 <- as.factor(raw_data$KHYPER41)
+  raw_data$MDIAB41 <- as.factor(raw_data$MDIAB41)
+  raw_data$NFRAC41 <- as.factor(raw_data$NFRAC41)
+  raw_data$U43S <- as.factor(raw_data$U43S)
+  raw_data$HHA4 <- as.factor(raw_data$HHA4)
+  raw_data$OO49LANG <- as.factor(raw_data$OO49LANG)
+  raw_data$MALE <- as.factor(raw_data$MALE)
   ## 1. KNN
   contin_data_knn <- knnImputation(raw_data[-c(1,21)])[,contin_idx-1]
   # summary(contin_data_knn)
@@ -147,21 +180,6 @@ Imputation <- function(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full
   }
   # summary(contin_data_median)
   
-  ### Categorical data imputation
-  # Mode
-  cate_na_data <- raw_data[,cate_na_idx]
-  
-  mode_list <- c()
-  for( i in cate_na_idx){
-    mode_list <- c(mode_list, getmode(raw_data[,i]))
-  }
-  mode_list
-  for( i in 1:ncol(cate_na_data)){
-    ind=which(is.na(cate_na_data[,i]))
-    cate_na_data[ind,i]=mode_list[i]
-  }
-  
-  # head(cate_na_data,10)
   
   ### Outcome NA
   outcome_na_idx <- which(is.na(raw_data[outcome_idx]))
@@ -184,11 +202,76 @@ summary(impute_result$contin_data_knn)
 new_data <- cbind(impute_result$outcome, 
                   impute_result$cate_full, 
                   impute_result$cate_na, 
-                  impute_result$contin_data_knn)[-impute_result$outcome_na_idx]
+                  impute_result$contin_data_knn)[-impute_result$outcome_na_idx,]
 
 
 summary(new_data)
- ###
+###
+
+
+####################################
+# Descriptive analysis for new data
+####################################
+# psych::pairs.panels(new_data)
+
+ggplot(new_data, aes(x = TOTIADL4, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+
+ggplot(new_data, aes(x = EE46, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+
+ggplot(new_data, aes(x = GRADE, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+
+
+p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(MARSTAT4),fill=as.factor(MARSTAT4)))+ 
+  geom_bar(stat = 'identity', position = 'stack', width = 1)
+p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
+  theme(axis.text = element_blank())
+
+p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(EE46),fill=as.factor(EE46)))+ 
+  geom_bar(stat = 'identity', position = 'stack', width = 1)
+p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
+  theme(axis.text = element_blank())
+
+
+colnames(new_data)
+library("gtsummary")
+new_data %>%
+  select(CESDTOT4,USBORN,MARSTAT4,HEALTH4,OO49LANG,MALE,GRADE,
+         NKIDS4,KHYPER41,MDIAB41,NFRAC41,U43S,CC43,EE46,HHA4,AGE4,
+         TOTMMSE4,TOTIADL4,TOTADL4) %>%
+  tbl_summary(missing = "no",
+              type = list(CESDTOT4 ~ 'continuous',
+                          USBORN ~ 'categorical',
+                          MARSTAT4 ~ 'categorical',
+                          HEALTH4 ~ 'categorical',
+                          OO49LANG ~ 'categorical',
+                          MALE ~ 'categorical',
+                          GRADE ~ 'continuous',
+                          NKIDS4 ~ 'continuous',
+                          KHYPER41 ~ 'categorical',
+                          MDIAB41 ~ 'categorical',
+                          NFRAC41 ~ 'categorical',
+                          U43S ~ 'categorical',
+                          EE46 ~ 'categorical',
+                          HHA4 ~ 'categorical',
+                          AGE4 ~ 'continuous',
+                          TOTMMSE4 ~ 'continuous',
+                          TOTIADL4 ~ 'continuous',
+                          TOTADL4 ~ 'continuous'),
+              statistic = list(all_continuous() ~ "{mean} ({sd}) min:{min} max:{max} IQR:[{p25}, {p75}]",
+                               all_categorical() ~ "{n} ({p}%)"),
+              digits = list(all_continuous() ~ c(2,2),
+                            all_categorical() ~ c(0,2))
+  )
+
+
+
+
 
 
 
