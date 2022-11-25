@@ -123,9 +123,7 @@ getmode <- function(v) {
   uniqv <- unique(v)
   uniqv[which.max(tabulate(match(v, uniqv)))]
 }
-summary(raw_data)
-table(raw_data[,8])
-getmode(raw_data[,8])
+
 
 Imputation <- function(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full_idx){
   ## this function only work for our raw_data ##
@@ -162,8 +160,8 @@ Imputation <- function(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full
   # summary(contin_data_knn)
   
   ## 2. Mice
-  tmp <- mice(raw_data[-c(1,21)],m=5,maxit=50,meth='pmm',seed=500)
-  contin_data_mice <- complete(tmp,1)[,contin_idx-1]
+  # tmp <- mice(raw_data[-c(1,21)],m=5,maxit=50,meth='pmm',seed=500)
+  # contin_data_mice <- complete(tmp,1)[,contin_idx-1]
   # summary(contin_data_mice)
   
   ## 3. Mean
@@ -188,7 +186,7 @@ Imputation <- function(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full
               cate_full=raw_data[cate_full_idx], 
               cate_na=cate_na_data, 
               contin_data_knn=contin_data_knn,
-              contin_data_mice=contin_data_mice,
+              # contin_data_mice=contin_data_mice,
               contin_data_mean=contin_data_mean,
               contin_data_median=contin_data_median,
               outcome_na_idx=outcome_na_idx))
@@ -212,32 +210,6 @@ summary(new_data)
 ####################################
 # Descriptive analysis for new data
 ####################################
-# psych::pairs.panels(new_data)
-
-ggplot(new_data, aes(x = TOTIADL4, y = CESDTOT4)) + 
-  geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
-
-ggplot(new_data, aes(x = EE46, y = CESDTOT4)) + 
-  geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
-
-ggplot(new_data, aes(x = GRADE, y = CESDTOT4)) + 
-  geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
-
-
-p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(MARSTAT4),fill=as.factor(MARSTAT4)))+ 
-  geom_bar(stat = 'identity', position = 'stack', width = 1)
-p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
-  theme(axis.text = element_blank())
-
-p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(EE46),fill=as.factor(EE46)))+ 
-  geom_bar(stat = 'identity', position = 'stack', width = 1)
-p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
-  theme(axis.text = element_blank())
-
-
 colnames(new_data)
 library("gtsummary")
 new_data %>%
@@ -269,13 +241,49 @@ new_data %>%
                             all_categorical() ~ c(0,2))
   )
 
+# psych::pairs.panels(new_data)
+
+ggplot(new_data, aes(x = TOTIADL4, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+
+ggplot(new_data, aes(x = EE46, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+
+ggplot(new_data, aes(x = GRADE, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+
+
+p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(MARSTAT4),fill=as.factor(MARSTAT4)))+ 
+  geom_bar(stat = 'identity', position = 'stack', width = 1)
+p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
+  theme(axis.text = element_blank())
+
+p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(EE46),fill=as.factor(EE46)))+ 
+  geom_bar(stat = 'identity', position = 'stack', width = 1)
+p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
+  theme(axis.text = element_blank())
 
 
 
+#### correlation of covariates
+library("corrplot")
+contin_data <- new_data[,16:19]
+cate_data <- new_data[,2:15]
+for(i in 1:14){
+  cate_data[,i] <- as.numeric(as.character(cate_data[,i]))
+}
+summary(cate_data)
 
+cormat = cor(contin_data, method = "pearson")
+pres <- cor.mtest(contin_data, conf.level = .95)
+corrplot.mixed(cormat, lower.col = "black", number.cex = 1,p.mat = pres$p, sig.level = .05)
 
-
-
+cormat = cor(cate_data, method = "spearman")
+pres <- cor.mtest(cate_data, conf.level = .95)
+corrplot.mixed(cormat, lower.col = "black", number.cex = 1,p.mat = pres$p, sig.level = .05)
 
 
 
