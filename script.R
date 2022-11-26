@@ -319,6 +319,9 @@ ggplot(new_data, aes(x = EE46, y = CESDTOT4)) +
 ggplot(new_data, aes(x = GRADE, y = CESDTOT4)) + 
   geom_point(color = "blue")+
   geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+ggplot(new_data, aes(x = NKIDS4, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
 
 
 
@@ -349,14 +352,161 @@ corrplot.mixed(cormat, lower.col = "black", number.cex = 1,p.mat = pres$p, sig.l
 #            2. do we need to make group for continuous variables ??  eg. AGE IDAL
 #            3. in data there are to major groups (physical health variables and mental health variables)
 #               is there any relationship inside or between physical health variables and mental health variables ??
+head(new_data)
+#2 grade not significant
+M2=lm(CESDTOT4~GRADE,data=new_data)
+summary(M2)
+# not significant
+BM2=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+GRADE,data=new_data)
+summary(BM2)
+
+table(new_data$GRADE) # 0-5 6-7 8-11 12-15 16-
+new_data$GRADE_Cat <- 0
+new_data$GRADE_Cat[new_data$GRADE>=6 & new_data$GRADE<=7] <- 1
+new_data$GRADE_Cat[new_data$GRADE>=8 & new_data$GRADE<=11] <- 2
+new_data$GRADE_Cat[new_data$GRADE>=12 & new_data$GRADE<=15] <- 3
+new_data$GRADE_Cat[new_data$GRADE>=16] <- 4
+table(new_data$GRADE_Cat)
+
+M2=lm(CESDTOT4~GRADE_Cat,data=new_data)
+anova(M2)
+BM2=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+as.factor(GRADE_Cat),data=new_data)
+anova(BM2)
+
+
+#3 USBORN  significant
+M3=lm(CESDTOT4~USBORN,data=new_data)
+summary(M3)
+
+BM3=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+USBORN,data=new_data)
+summary(BM3)
+
+#4 AGE4  significant
+M4=lm(CESDTOT4~AGE4,data=new_data)
+summary(M4)
+#not significant
+BM4=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+AGE4,data=new_data)
+summary(BM4)
+
+
+#5 MARSTAT4 significant
+M5=lm(CESDTOT4~MARSTAT4,data=new_data)
+summary(M5)
+# not significant
+BM5=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+MARSTAT4,data=new_data)
+anova(BM5)
+
+
+#6 NKIDS4 not significant
+M6=lm(CESDTOT4~NKIDS4,data=new_data)
+summary(M6)
+# not significant
+BM6=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+NKIDS4,data=new_data)
+summary(BM6)
+
+new_data$NKIDS4_Cat <- 0
+new_data$NKIDS4_Cat[new_data$NKIDS4>0 & new_data$NKIDS4<4] <- 1
+new_data$NKIDS4_Cat[new_data$NKIDS4>=4] <- 2
+
+M6=lm(CESDTOT4~as.factor(NKIDS4_Cat),data=new_data)
+summary(M6)
+BM6=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+as.factor(NKIDS4_Cat),data=new_data)
+summary(BM6)
+
+#7 HEALTH4 significant
+M7=lm(CESDTOT4~factor(HEALTH4),data=new_data)
+summary(M7)
+# significant
+BM7=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+factor(HEALTH4),data=new_data)
+anova(BM7)
+
+#8 KHYPER41 significant
+M8=lm(CESDTOT4~KHYPER41,data=new_data)
+summary(M8)
+# significant
+BM8=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+KHYPER41,data=new_data)
+summary(BM8)
+
+#9 MDIAB41 significant
+M9=lm(CESDTOT4~MDIAB41,data=new_data)
+summary(M9)
+# not significant
+BM9=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+MDIAB41,data=new_data)
+summary(BM9)
+
+#10 NFRAC41 not significant
+M10=lm(CESDTOT4~NFRAC41,data=new_data)
+summary(M10)
+
+# not significant
+BM10=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+NFRAC41,data=new_data)
+summary(BM10)
+
+#11 U43S significant
+M11=lm(CESDTOT4~U43S,data=new_data)
+summary(M11)
+# significant
+BM11=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+U43S,data=new_data)
+summary(BM11)
+
+
+#12 TOTMMSE4 significant
+M12=lm(CESDTOT4~TOTMMSE4,data=new_data)
+summary(M12)
+# significant
+BM12=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+TOTMMSE4,data=new_data)
+summary(BM12)
+
+#14 TOTIADL4 significant
+M14=lm(CESDTOT4~TOTIADL4,data=new_data)
+summary(M14)
+
+#15 totadl4 significant
+M15=lm(CESDTOT4~TOTADL4,data=new_data)
+summary(M15)
+# significant
+BM15=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+TOTADL4,data=new_data)
+summary(BM15)
+
+#16 CC43 significant
+M16=lm(CESDTOT4~CC43,data=new_data)
+summary(M16)
+# significant
+BM16=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+CC43,data=new_data)
+summary(BM16)
+
+#17 EE46 significant
+M17=lm(CESDTOT4~EE46,data=new_data)
+summary(M17)
+
+
+#18 hha4 -significant
+M18=lm(CESDTOT4~HHA4,data=new_data)
+summary(M18)
+#not significant 
+BM18=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+HHA4,data=new_data)
+summary(BM18)
+
+#19 oo49lang -significant
+M19=lm(CESDTOT4~OO49LANG,data=new_data)
+summary(M19)
+# significant
+BM19<-lm(CESDTOT4~TOTIADL4+as.factor(EE46)+OO49LANG,data=new_data)
+summary(BM19)
+
+#20 Male -significant
+M20=lm(CESDTOT4~MALE,data=new_data)
+summary(M20)
+# siginificant
+BM20<-lm(CESDTOT4~TOTIADL4+as.factor(EE46)+MALE,data=new_data)
+summary(BM20)
 
 
 
 
-
-
-
-
+##################
+# Building Models
+##################
 
 
 
