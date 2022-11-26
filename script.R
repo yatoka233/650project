@@ -11,6 +11,7 @@
 rm(list=ls())
 library('readxl')
 library('ggplot2')
+library('ggpubr')
 library('tidyverse')
 library('mice')
 library('VIM')
@@ -25,7 +26,6 @@ raw_data <- read_excel(inputFile, sheet=1, na='NA')
 raw_data <- as.data.frame(raw_data)
 
 summary(raw_data)
-
 
 
 ## Visualize missing values
@@ -241,34 +241,89 @@ new_data %>%
                             all_categorical() ~ c(0,2))
   )
 
-# psych::pairs.panels(new_data)
 
-ggplot(new_data, aes(x = TOTIADL4, y = CESDTOT4)) + 
-  geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+##### boxplot
+p1 <- ggplot(new_data, aes(y=CESDTOT4)) +
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+p2 <- ggplot(new_data, aes(y=TOTIADL4)) +
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+p3 <- ggplot(new_data, aes(y=TOTADL4)) +
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+p4 <- ggplot(new_data, aes(y=AGE4)) +
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+p5 <- ggplot(new_data, aes(y=TOTMMSE4)) +
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+p6 <- ggplot(new_data, aes(y=GRADE)) +
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
 
-ggplot(new_data, aes(x = EE46, y = CESDTOT4)) + 
-  geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+ggarrange(p1,p2,p3,p4,p5,p6,
+          ncol = 3, nrow = 2)
 
-ggplot(new_data, aes(x = GRADE, y = CESDTOT4)) + 
-  geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
 
+###### density of outcome and continuous variables
+ggplot(new_data, aes(x=CESDTOT4)) +
+  geom_density(alpha=.5, fill="lightblue", color="blue")
+
+ggplot(new_data, aes(x=TOTIADL4)) +
+  geom_density(alpha=.5, fill="lightblue", color="blue")
+ggplot(new_data, aes(x=TOTADL4)) +
+  geom_density(alpha=.5, fill="lightblue", color="blue")
+ggplot(new_data, aes(x=AGE4)) +
+  geom_density(alpha=.5, fill="lightblue", color="blue")
+ggplot(new_data, aes(x=TOTMMSE4)) +
+  geom_density(alpha=.5, fill="lightblue", color="blue")
+
+
+##### histogram of ordical variables
+ggplot(new_data, aes(x=as.factor(GRADE))) +
+  geom_histogram(color="lightblue",stat="count", fill="#69b3a2", alpha=0.7)
+ggplot(new_data, aes(x=as.factor(HEALTH4))) +
+  geom_histogram(color="lightblue",stat="count", fill="#69b3a2", alpha=0.7)
+ggplot(new_data, aes(x=as.factor(NKIDS4))) +
+  geom_histogram(color="lightblue",stat="count", fill="#69b3a2", alpha=0.7)
+ggplot(new_data, aes(x=as.factor(EE46))) +
+  geom_histogram(color="lightblue",stat="count", fill="#69b3a2", alpha=0.7)
+
+
+##### piechart of categorical variables
+p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(EE46),fill=as.factor(EE46)))+ 
+  geom_bar(stat = 'identity', position = 'stack', width = 1)
+p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
+  theme(axis.text = element_blank())
 
 p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(MARSTAT4),fill=as.factor(MARSTAT4)))+ 
   geom_bar(stat = 'identity', position = 'stack', width = 1)
 p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
   theme(axis.text = element_blank())
 
-p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(EE46),fill=as.factor(EE46)))+ 
-  geom_bar(stat = 'identity', position = 'stack', width = 1)
-p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
-  theme(axis.text = element_blank())
+
+# psych::pairs.panels(new_data)
+
+##### outcome vs Xi
+ggplot(new_data, aes(x = TOTIADL4, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+ggplot(new_data, aes(x = TOTADL4, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+ggplot(new_data, aes(x = AGE4, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+ggplot(new_data, aes(x = TOTMMSE4, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+
+ggplot(new_data, aes(x = EE46, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+ggplot(new_data, aes(x = GRADE, y = CESDTOT4)) + 
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
 
 
 
 #### correlation of covariates
+## just for reference
 library("corrplot")
 contin_data <- new_data[,16:19]
 cate_data <- new_data[,2:15]
@@ -284,6 +339,30 @@ corrplot.mixed(cormat, lower.col = "black", number.cex = 1,p.mat = pres$p, sig.l
 cormat = cor(cate_data, method = "spearman")
 pres <- cor.mtest(cate_data, conf.level = .95)
 corrplot.mixed(cormat, lower.col = "black", number.cex = 1,p.mat = pres$p, sig.level = .05)
+
+
+
+#################################################
+# Bivariate analysis (outcome vs. Xi regression)
+#################################################
+# Questions: 1. how to deal with categorical variables with categories > 5 ??  eg. GRADE KIDS
+#            2. do we need to make group for continuous variables ??  eg. AGE IDAL
+#            3. in data there are to major groups (physical health variables and mental health variables)
+#               is there any relationship inside or between physical health variables and mental health variables ??
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
