@@ -117,7 +117,7 @@ outcome_idx <- c(13)
 cate_na_idx <- c(2,6,8,9,10,11,16,17,18)# index of categorical with missing values
 cate_full_idx <- c(3,5,7,19,20)
 other_idx <- c(1,21)
-
+colnames(raw_data[,cate_full_idx])
 
 getmode <- function(v) {
   uniqv <- unique(v)
@@ -146,17 +146,23 @@ Imputation <- function(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full
   
   ### Continuous data imputation
   ## categorical to factor
+  raw_data$GRADE <- as.factor(raw_data$GRADE)
   raw_data$USBORN <- as.factor(raw_data$USBORN)
   raw_data$MARSTAT4 <- as.factor(raw_data$MARSTAT4)
+  raw_data$NKIDS4 <- as.factor(raw_data$NKIDS4)
   raw_data$KHYPER41 <- as.factor(raw_data$KHYPER41)
   raw_data$MDIAB41 <- as.factor(raw_data$MDIAB41)
   raw_data$NFRAC41 <- as.factor(raw_data$NFRAC41)
+  raw_data$CC43 <- as.factor(raw_data$CC43)
   raw_data$U43S <- as.factor(raw_data$U43S)
   raw_data$HHA4 <- as.factor(raw_data$HHA4)
   raw_data$OO49LANG <- as.factor(raw_data$OO49LANG)
   raw_data$MALE <- as.factor(raw_data$MALE)
+  raw_data$EE46 <- as.factor(raw_data$EE46)
+  raw_data$HEALTH4 <- as.factor(raw_data$HEALTH4)
   ## 1. KNN
   contin_data_knn <- knnImputation(raw_data[-c(1,21)])[,contin_idx-1]
+  cate_na_data_knn <- knnImputation(raw_data[-c(1,21)])[,cate_na_idx-1]
   # summary(contin_data_knn)
   
   ## 2. Mice
@@ -185,6 +191,7 @@ Imputation <- function(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full
   return(list(outcome=raw_data[outcome_idx], 
               cate_full=raw_data[cate_full_idx], 
               cate_na=cate_na_data, 
+              cate_na_knn=cate_na_data_knn, 
               contin_data_knn=contin_data_knn,
               # contin_data_mice=contin_data_mice,
               contin_data_mean=contin_data_mean,
@@ -195,14 +202,16 @@ Imputation <- function(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full
 impute_result <- Imputation(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full_idx)
 
 summary(impute_result$cate_na)
+summary(impute_result$cate_na_knn)
 summary(impute_result$contin_data_knn)
 #### combine data after imputing
 new_data <- cbind(impute_result$outcome, 
                   impute_result$cate_full, 
-                  impute_result$cate_na, 
+                  impute_result$cate_na_knn, 
                   impute_result$contin_data_knn)[-impute_result$outcome_na_idx,]
 
-
+new_data$GRADE <- as.numeric(as.character(new_data$GRADE))
+new_data$NKIDS4 <- as.numeric(as.character(new_data$NKIDS4))
 summary(new_data)
 ###
 
@@ -210,12 +219,13 @@ summary(new_data)
 ####################################
 # Descriptive analysis for new data
 ####################################
+# select(CESDTOT4,USBORN,MARSTAT4,HEALTH4,OO49LANG,MALE,GRADE,
+#        NKIDS4,KHYPER41,MDIAB41,NFRAC41,U43S,CC43,EE46,HHA4,AGE4,
+#        TOTMMSE4,TOTIADL4,TOTADL4) %>%
+  
 colnames(new_data)
 library("gtsummary")
 new_data %>%
-  select(CESDTOT4,USBORN,MARSTAT4,HEALTH4,OO49LANG,MALE,GRADE,
-         NKIDS4,KHYPER41,MDIAB41,NFRAC41,U43S,CC43,EE46,HHA4,AGE4,
-         TOTMMSE4,TOTIADL4,TOTADL4) %>%
   tbl_summary(missing = "no",
               type = list(CESDTOT4 ~ 'continuous',
                           USBORN ~ 'categorical',
@@ -229,6 +239,7 @@ new_data %>%
                           MDIAB41 ~ 'categorical',
                           NFRAC41 ~ 'categorical',
                           U43S ~ 'categorical',
+                          CC43 ~ 'categorical',
                           EE46 ~ 'categorical',
                           HHA4 ~ 'categorical',
                           AGE4 ~ 'continuous',
@@ -352,165 +363,32 @@ corrplot.mixed(cormat, lower.col = "black", number.cex = 1,p.mat = pres$p, sig.l
 #            2. do we need to make group for continuous variables ??  eg. AGE IDAL
 #            3. in data there are to major groups (physical health variables and mental health variables)
 #               is there any relationship inside or between physical health variables and mental health variables ??
-head(new_data)
-#2 grade not significant
-M2=lm(CESDTOT4~GRADE,data=new_data)
-summary(M2)
-# not significant
-BM2=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+GRADE,data=new_data)
-summary(BM2)
-
-table(new_data$GRADE) # 0-5 6-7 8-11 12-15 16-
-new_data$GRADE_Cat <- 0
-new_data$GRADE_Cat[new_data$GRADE>=6 & new_data$GRADE<=7] <- 1
-new_data$GRADE_Cat[new_data$GRADE>=8 & new_data$GRADE<=11] <- 2
-new_data$GRADE_Cat[new_data$GRADE>=12 & new_data$GRADE<=15] <- 3
-new_data$GRADE_Cat[new_data$GRADE>=16] <- 4
-table(new_data$GRADE_Cat)
-
-M2=lm(CESDTOT4~GRADE_Cat,data=new_data)
-anova(M2)
-BM2=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+as.factor(GRADE_Cat),data=new_data)
-anova(BM2)
-
-
-#3 USBORN  significant
-M3=lm(CESDTOT4~USBORN,data=new_data)
-summary(M3)
-
-BM3=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+USBORN,data=new_data)
-summary(BM3)
-
-#4 AGE4  significant
-M4=lm(CESDTOT4~AGE4,data=new_data)
-summary(M4)
-#not significant
-BM4=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+AGE4,data=new_data)
-summary(BM4)
-
-
-#5 MARSTAT4 significant
-M5=lm(CESDTOT4~MARSTAT4,data=new_data)
-summary(M5)
-# not significant
-BM5=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+MARSTAT4,data=new_data)
-anova(BM5)
-
-
-#6 NKIDS4 not significant
-M6=lm(CESDTOT4~NKIDS4,data=new_data)
-summary(M6)
-# not significant
-BM6=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+NKIDS4,data=new_data)
-summary(BM6)
-
-new_data$NKIDS4_Cat <- 0
-new_data$NKIDS4_Cat[new_data$NKIDS4>0 & new_data$NKIDS4<4] <- 1
-new_data$NKIDS4_Cat[new_data$NKIDS4>=4] <- 2
-
-M6=lm(CESDTOT4~as.factor(NKIDS4_Cat),data=new_data)
-summary(M6)
-BM6=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+as.factor(NKIDS4_Cat),data=new_data)
-summary(BM6)
-
-#7 HEALTH4 significant
-M7=lm(CESDTOT4~factor(HEALTH4),data=new_data)
-summary(M7)
-# significant
-BM7=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+factor(HEALTH4),data=new_data)
-anova(BM7)
-
-#8 KHYPER41 significant
-M8=lm(CESDTOT4~KHYPER41,data=new_data)
-summary(M8)
-# significant
-BM8=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+KHYPER41,data=new_data)
-summary(BM8)
-
-#9 MDIAB41 significant
-M9=lm(CESDTOT4~MDIAB41,data=new_data)
-summary(M9)
-# not significant
-BM9=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+MDIAB41,data=new_data)
-summary(BM9)
-
-#10 NFRAC41 not significant
-M10=lm(CESDTOT4~NFRAC41,data=new_data)
-summary(M10)
-
-# not significant
-BM10=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+NFRAC41,data=new_data)
-summary(BM10)
-
-#11 U43S significant
-M11=lm(CESDTOT4~U43S,data=new_data)
-summary(M11)
-# significant
-BM11=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+U43S,data=new_data)
-summary(BM11)
-
-
-#12 TOTMMSE4 significant
-M12=lm(CESDTOT4~TOTMMSE4,data=new_data)
-summary(M12)
-# significant
-BM12=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+TOTMMSE4,data=new_data)
-summary(BM12)
-
-#14 TOTIADL4 significant
-M14=lm(CESDTOT4~TOTIADL4,data=new_data)
-summary(M14)
-
-#15 totadl4 significant
-M15=lm(CESDTOT4~TOTADL4,data=new_data)
-summary(M15)
-# significant
-BM15=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+TOTADL4,data=new_data)
-summary(BM15)
-
-#16 CC43 significant
-M16=lm(CESDTOT4~CC43,data=new_data)
-summary(M16)
-# significant
-BM16=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+CC43,data=new_data)
-summary(BM16)
-
-#17 EE46 significant
-M17=lm(CESDTOT4~EE46,data=new_data)
-summary(M17)
-
-
-#18 hha4 -significant
-M18=lm(CESDTOT4~HHA4,data=new_data)
-summary(M18)
-#not significant 
-BM18=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+HHA4,data=new_data)
-summary(BM18)
-
-#19 oo49lang -significant
-M19=lm(CESDTOT4~OO49LANG,data=new_data)
-summary(M19)
-# significant
-BM19<-lm(CESDTOT4~TOTIADL4+as.factor(EE46)+OO49LANG,data=new_data)
-summary(BM19)
-
-#20 Male -significant
-M20=lm(CESDTOT4~MALE,data=new_data)
-summary(M20)
-# siginificant
-BM20<-lm(CESDTOT4~TOTIADL4+as.factor(EE46)+MALE,data=new_data)
-summary(BM20)
-
-
-
 
 ##################
 # Building Models
 ##################
+colnames(new_data)
+select_data <- new_data[,c(1,2,3,4,5,6,9,12,13,14,17,18,19)] 
+colnames(select_data)
+
+summary(select_data)
+
+lr <- step(lm(CESDTOT4~., data=select_data), direction="both")
+summary(lr)
+lr$anova
+par(mfrow=c(2,2)) #用来把四张图同屏显示
+plot(lr)
 
 
+### 
+library('MASS')
+base <- lm(CESDTOT4 ~ TOTIADL4+EE46, data = select_data)
 
 
+full.model <- lm(CESDTOT4~., data = select_data)
+
+step.model <- stepAIC(full.model, direction = "both", trace = FALSE)
+summary(step.model)
 
 
 
