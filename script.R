@@ -313,6 +313,8 @@ ggplot(new_data, aes(x = HEALTH4, y = CESDTOT4)) +
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
 ggplot(new_data, aes(x = as.factor(AGE4), y = CESDTOT4)) + 
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+ggplot(new_data, aes(x = MARSTAT4, y = CESDTOT4)) + 
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
 
 ggplot(new_data, aes(x = as.factor(TOTADL4), y = CESDTOT4)) + 
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
@@ -386,10 +388,8 @@ summary(BM4)
 
 table(new_data$AGE4)
 new_data$AGE4_Cat <- 0
-new_data$AGE4_Cat[new_data$AGE4>=79 & new_data$AGE4<=84] <- 1
-new_data$AGE4_Cat[new_data$AGE4>=85 & new_data$AGE4<=88] <- 2
-new_data$AGE4_Cat[new_data$AGE4>=89 & new_data$AGE4<=94] <- 3
-new_data$AGE4_Cat[new_data$AGE4>94] <- 4
+new_data$AGE4_Cat[new_data$AGE4>=94] <- 1
+
 table(new_data$AGE4_Cat)
 
 M4=lm(CESDTOT4~AGE4_Cat,data=new_data)
@@ -404,6 +404,17 @@ summary(M5)
 BM5=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+MARSTAT4,data=new_data)
 anova(BM5)
 
+table(new_data$MARSTAT4)
+new_data$MARSTAT4_Cat <- 0
+new_data$MARSTAT4_Cat[new_data$MARSTAT4==3] <- 1
+table(new_data$MARSTAT4_Cat)
+new_data$MARSTAT4_Cat <- as.factor(new_data$MARSTAT4_Cat)
+
+M5=lm(CESDTOT4~MARSTAT4_Cat,data=new_data)
+summary(M5)
+
+BM5=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+MARSTAT4_Cat,data=new_data)
+anova(BM5)
 
 #6 NKIDS4 not significant
 M6=lm(CESDTOT4~NKIDS4,data=new_data)
@@ -471,6 +482,20 @@ summary(M12)
 # significant
 BM12=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+TOTMMSE4,data=new_data)
 summary(BM12)
+
+table(new_data$TOTMMSE4)
+new_data$TOTMMSE4_Cat <- 0
+new_data$TOTMMSE4_Cat[new_data$TOTMMSE4>=11 & new_data$TOTMMSE4>=18] <- 1
+new_data$TOTMMSE4_Cat[new_data$TOTMMSE4>=19 & new_data$TOTMMSE4>=24] <- 2
+new_data$TOTMMSE4_Cat[new_data$TOTMMSE4>=25] <- 2
+new_data$TOTMMSE4_Cat <- as.factor(new_data$TOTMMSE4_Cat)
+table(new_data$TOTMMSE4_Cat)
+
+M12=lm(CESDTOT4~TOTMMSE4_Cat,data=new_data)
+summary(M12)
+BM12=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+TOTMMSE4_Cat,data=new_data)
+summary(BM12)
+
 
 #14 TOTIADL4 significant
 M14=lm(CESDTOT4~TOTIADL4,data=new_data)
@@ -554,7 +579,8 @@ summary(BM20)
 ##### Building Models ####
 ##########################
 colnames(new_data)
-select_data <- new_data[,-c(1,3,5,22)] 
+select_data <- new_data[,-c(1,4,5,22)] 
+select_data <- new_data
 colnames(select_data)
 
 select_data$GRADE_Cat <- as.factor(select_data$GRADE_Cat)
@@ -591,14 +617,40 @@ avPlots(full.model.t)
 residualPlots(full.model.t,type="response")
 
 
-
-
-
 ### full model doesn't have multicollinearity
 vif_values <- vif(full.model.t)[,1]
 barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "Orchid")
 abline(v = 5, lwd = 3, lty = 2)
 
+
+#### Outliers ####
+full_yhat = full.model.t$fitted.values
+full_res = full.model.t$residuals #m1.yhat-fev
+full_h = hatvalues(full.model.t) #leverage
+full_r = rstandard(full.model.t) #internally studentized residuals
+full_rr = rstudent(full.model.t) #externally studentized residuals
+
+n = nrow(select_data)
+p = full.model.t$rank # dimensions
+full_sigma = sqrt( sum(full_res^2)/(n-p) )
+full_z = full_res/full_sigma #standardized residual
+
+outlier <- rep(0, length(full_z))
+outlier[which(abs(full_z) >= 3)] <- 1
+outlier <- as.factor(outlier)
+
+qplot(x=full_yhat, y=full_z, col=outlier)
+qplot(x=new_data$TOTIADL4, y=new_data$CESDTOT4, col=outlier)
+
+tmp <- new_data[which(abs(full_z) >= 3),]
+
+full.model.t2 <- lm(CESDTOT4~., data = select_data[-which(abs(full_z) >= 3),])
+summary(full.model.t2)
+
+### plots
+par(mfrow=c(2,2)) 
+plot(full.model.t2)
+par(mfrow=c(1,1))
 ####################################################
 
 
@@ -609,7 +661,7 @@ abline(v = 5, lwd = 3, lty = 2)
 #### Stepwise regression ####
 #############################
 ##### step
-lr_step <- step(full.model, direction="both")
+lr_step <- step(full.model.t2, direction="both")
 summary(lr_step)
 lr_step$anova
 par(mfrow=c(2,2)) 
@@ -622,7 +674,8 @@ summary(step.model)
 step.model$anova
 
 ##### stepwise
-result <- stepAIC(full.model, lm(CESDTOT4~1, data = select_data), alpha.to.enter = 0.05, alpha.to.leave = 0.1)
+result <- stepAIC(full.model.t2, lm(CESDTOT4~1, data = select_data[-which(abs(full_z) >= 3),]), 
+                  alpha.to.enter = 0.05, alpha.to.leave = 0.1)
 summary(result)
 
 
