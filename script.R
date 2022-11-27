@@ -124,6 +124,7 @@ cate_full_idx <- c(3,5,7,19,20)
 other_idx <- c(1,21)
 colnames(raw_data[,cate_full_idx])
 
+summary(raw_data)
 
 ################## Imputation 1 #########################
 impute_result <- Imputation(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full_idx)
@@ -144,10 +145,10 @@ summary(new_data)
 
 
 ################## Imputation 2 #########################
-# raw_data$GRADE <- as.factor(raw_data$GRADE)
+raw_data$GRADE <- as.factor(raw_data$GRADE)
 raw_data$USBORN <- as.factor(raw_data$USBORN)
 raw_data$MARSTAT4 <- as.factor(raw_data$MARSTAT4)
-# raw_data$NKIDS4 <- as.factor(raw_data$NKIDS4)
+raw_data$NKIDS4 <- as.factor(raw_data$NKIDS4)
 raw_data$KHYPER41 <- as.factor(raw_data$KHYPER41)
 raw_data$MDIAB41 <- as.factor(raw_data$MDIAB41)
 raw_data$NFRAC41 <- as.factor(raw_data$NFRAC41)
@@ -170,6 +171,8 @@ mice_data$NKIDS4 <- as.numeric(as.character(mice_data$NKIDS4))
 
 new_data <- mice_data
 
+table(mice_data$GRADE)
+table(mice_data$NKIDS4)
 t <- lm(CESDTOT4~.,data=mice_data)
 summary(t)
 par(mfrow=c(2,2)) 
