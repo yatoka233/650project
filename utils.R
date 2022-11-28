@@ -222,7 +222,19 @@ getmode <- function(v) {
 
 
 
-
+split_IQR <- function(x) {
+  print(c(quantile(x, 0.25),
+          quantile(x, 0.5),
+          quantile(x, 0.75)))
+  Cate <- rep(0, length(x))
+  Cate[x > quantile(x, 0.25) &
+         x <= quantile(x, 0.5)] <- 1
+  Cate[x > quantile(x, 0.5) &
+         x <= quantile(x, 0.75)] <- 2
+  Cate[x > quantile(x, 0.75)] <- 3
+  
+  return(as.factor(Cate))
+}
 
 
 

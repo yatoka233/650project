@@ -145,31 +145,38 @@ summary(new_data)
 
 
 ################## Imputation 2 #########################
-raw_data$GRADE <- as.factor(raw_data$GRADE)
+# raw_data$GRADE <- as.factor(raw_data$GRADE)
 raw_data$USBORN <- as.factor(raw_data$USBORN)
+# raw_data$AGE4 <- as.factor(raw_data$AGE4)
 raw_data$MARSTAT4 <- as.factor(raw_data$MARSTAT4)
-raw_data$NKIDS4 <- as.factor(raw_data$NKIDS4)
+# raw_data$NKIDS4 <- as.factor(raw_data$NKIDS4)
+raw_data$HEALTH4 <- ordered(raw_data$HEALTH4) ## order
 raw_data$KHYPER41 <- as.factor(raw_data$KHYPER41)
 raw_data$MDIAB41 <- as.factor(raw_data$MDIAB41)
 raw_data$NFRAC41 <- as.factor(raw_data$NFRAC41)
-raw_data$CC43 <- as.factor(raw_data$CC43)
 raw_data$U43S <- as.factor(raw_data$U43S)
+
+raw_data$CC43 <- ordered(raw_data$CC43) ## order
+raw_data$EE46 <- ordered(raw_data$EE46) ## order
 raw_data$HHA4 <- as.factor(raw_data$HHA4)
 raw_data$OO49LANG <- as.factor(raw_data$OO49LANG)
 raw_data$MALE <- as.factor(raw_data$MALE)
-raw_data$EE46 <- as.factor(raw_data$EE46)
-raw_data$HEALTH4 <- as.factor(raw_data$HEALTH4)
+
+
 
 outcome_na_idx <- which(is.na(raw_data$CESDTOT4))
 
-tmp <- mice(raw_data[-c(1,21)],m=5,seed=500)
-mice_data <- complete(tmp,1)[-outcome_na_idx,]
+colnames(raw_data[-c(1,21)])
+mice_tmp <- mice(raw_data[-c(1,21)],m=5,maxit=10,seed=500) ## 4 best result so far
+mice_data <- complete(mice_tmp,4)[-outcome_na_idx,]
 summary(mice_data)
 
-mice_data$GRADE <- as.numeric(as.character(mice_data$GRADE))
-mice_data$NKIDS4 <- as.numeric(as.character(mice_data$NKIDS4))
+mice_data$HEALTH4 <- factor(mice_data$HEALTH4, ordered = FALSE) ## order
+mice_data$CC43 <- factor(mice_data$CC43, ordered = FALSE) ## order
+mice_data$EE46 <- factor(mice_data$EE46, ordered = FALSE) ## order
 
 new_data <- mice_data
+
 
 table(mice_data$GRADE)
 table(mice_data$NKIDS4)
@@ -327,9 +334,11 @@ ggplot(new_data, aes(x = as.factor(TOTMMSE4), y = CESDTOT4)) +
 #### correlation of covariates ####
 ## just for reference
 library("corrplot")
-contin_data <- new_data[,16:19]
-cate_data <- new_data[,2:15]
-for(i in 1:14){
+summary(new_data)
+contin_idx_cor <- c(1,3,5,11,13,14)
+contin_data <- new_data[,contin_idx_cor]
+cate_data <- new_data[,-contin_idx_cor]
+for(i in 1:length(cate_data)){
   cate_data[,i] <- as.numeric(as.character(cate_data[,i]))
 }
 summary(cate_data)
@@ -388,8 +397,13 @@ summary(BM4)
 
 table(new_data$AGE4)
 new_data$AGE4_Cat <- 0
-new_data$AGE4_Cat[new_data$AGE4>=94] <- 1
+new_data$AGE4_Cat[new_data$AGE4>=79 & new_data$AGE4<=84] <- 1
+new_data$AGE4_Cat[new_data$AGE4>=85 & new_data$AGE4<=88] <- 2
+new_data$AGE4_Cat[new_data$AGE4>=89] <- 3
 
+new_data$AGE4_Cat <- as.factor(new_data$AGE4_Cat)
+
+# new_data$AGE4_Cat <- split_IQR(new_data$AGE4)
 table(new_data$AGE4_Cat)
 
 M4=lm(CESDTOT4~AGE4_Cat,data=new_data)
@@ -398,6 +412,7 @@ BM4=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+AGE4_Cat,data=new_data)
 summary(BM4)
 
 #5 MARSTAT4 significant
+new_data$MARSTAT4 <- as.factor(new_data$MARSTAT4)
 M5=lm(CESDTOT4~MARSTAT4,data=new_data)
 summary(M5)
 # significant
@@ -417,7 +432,7 @@ BM5=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+MARSTAT4_Cat,data=new_data)
 anova(BM5)
 
 #6 NKIDS4 not significant
-M6=lm(CESDTOT4~NKIDS4,data=new_data)
+M6=lm(CESDTOT4~as.factor(NKIDS4),data=new_data)
 summary(M6)
 # not significant
 BM6=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+NKIDS4,data=new_data)
@@ -425,6 +440,7 @@ summary(BM6)
 
 new_data$NKIDS4_Cat <- 0
 new_data$NKIDS4_Cat[new_data$NKIDS4>=14] <- 1
+table(new_data$NKIDS4_Cat)
 
 M6=lm(CESDTOT4~as.factor(NKIDS4_Cat),data=new_data)
 summary(M6)
@@ -485,8 +501,7 @@ summary(BM12)
 
 table(new_data$TOTMMSE4)
 new_data$TOTMMSE4_Cat <- 0
-new_data$TOTMMSE4_Cat[new_data$TOTMMSE4>=11 & new_data$TOTMMSE4>=18] <- 1
-new_data$TOTMMSE4_Cat[new_data$TOTMMSE4>=19 & new_data$TOTMMSE4>=24] <- 2
+new_data$TOTMMSE4_Cat[new_data$TOTMMSE4>=17 & new_data$TOTMMSE4<=24] <- 1
 new_data$TOTMMSE4_Cat[new_data$TOTMMSE4>=25] <- 2
 new_data$TOTMMSE4_Cat <- as.factor(new_data$TOTMMSE4_Cat)
 table(new_data$TOTMMSE4_Cat)
@@ -579,8 +594,8 @@ summary(BM20)
 ##### Building Models ####
 ##########################
 colnames(new_data)
-select_data <- new_data[,-c(1,4,5,22)] 
-select_data <- new_data
+select_data <- new_data[,-c(1,4,5,23)] 
+# select_data <- new_data
 colnames(select_data)
 
 select_data$GRADE_Cat <- as.factor(select_data$GRADE_Cat)
@@ -669,7 +684,7 @@ plot(lr_step)
 par(mfrow=c(1,1))
 
 ##### stepAIC
-step.model <- stepAIC(full.model, direction = "both", trace = FALSE)
+step.model <- stepAIC(full.model.t2, direction = "both", trace = FALSE)
 summary(step.model)
 step.model$anova
 
