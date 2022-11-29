@@ -169,6 +169,7 @@ outcome_na_idx <- which(is.na(raw_data$CESDTOT4))
 colnames(raw_data[-c(1,21)])
 mice_tmp <- mice(raw_data[-c(1,21)],m=5,maxit=10,seed=500) ## 4 best result so far
 mice_data <- complete(mice_tmp,4)[-outcome_na_idx,]
+# mice_data <- complete(mice_tmp,5)
 summary(mice_data)
 
 mice_data$HEALTH4 <- factor(mice_data$HEALTH4, ordered = FALSE) ## order
@@ -499,6 +500,7 @@ summary(M12)
 BM12=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+TOTMMSE4,data=new_data)
 summary(BM12)
 
+## transform is not significant after stepwise
 table(new_data$TOTMMSE4)
 new_data$TOTMMSE4_Cat <- 0
 new_data$TOTMMSE4_Cat[new_data$TOTMMSE4>=17 & new_data$TOTMMSE4<=24] <- 1
@@ -594,7 +596,7 @@ summary(BM20)
 ##### Building Models ####
 ##########################
 colnames(new_data)
-select_data <- new_data[,-c(1,4,5,23)] 
+select_data <- new_data[,-c(1,4,5,23,24)] 
 # select_data <- new_data
 colnames(select_data)
 
@@ -651,21 +653,27 @@ full_sigma = sqrt( sum(full_res^2)/(n-p) )
 full_z = full_res/full_sigma #standardized residual
 
 outlier <- rep(0, length(full_z))
-outlier[which(abs(full_z) >= 3)] <- 1
+outlier[which(abs(full_rr) >= 3)] <- 1
+sum(outlier)
 outlier <- as.factor(outlier)
 
-qplot(x=full_yhat, y=full_z, col=outlier)
+qplot(x=full_yhat, y=full_rr, col=outlier)
 qplot(x=new_data$TOTIADL4, y=new_data$CESDTOT4, col=outlier)
 
-tmp <- new_data[which(abs(full_z) >= 3),]
+tmp <- new_data[which(abs(full_rr) >= 3),]
 
-full.model.t2 <- lm(CESDTOT4~., data = select_data[-which(abs(full_z) >= 3),])
+full.model.t2 <- lm(CESDTOT4~., data = select_data[-which(abs(full_rr) >= 3),])
 summary(full.model.t2)
 
 ### plots
 par(mfrow=c(2,2)) 
 plot(full.model.t2)
 par(mfrow=c(1,1))
+
+
+#### difference after taking out outliers
+(coefficients(full.model.t) - coefficients(full.model.t2))/coefficients(full.model.t)*100
+
 ####################################################
 
 
@@ -676,6 +684,9 @@ par(mfrow=c(1,1))
 #### Stepwise regression ####
 #############################
 ##### step
+lr_step0 <- step(full.model.t, direction="both")
+summary(lr_step0)
+
 lr_step <- step(full.model.t2, direction="both")
 summary(lr_step)
 lr_step$anova
@@ -692,6 +703,80 @@ step.model$anova
 result <- stepAIC(full.model.t2, lm(CESDTOT4~1, data = select_data[-which(abs(full_z) >= 3),]), 
                   alpha.to.enter = 0.05, alpha.to.leave = 0.1)
 summary(result)
+
+##### back ward after stepwise (same result)
+lr_back <- step(lr_step, direction="backward")
+summary(lr_back)
+
+
+
+###################
+#### Diagnosis ####
+###################
+main.model <- lr_back
+
+### multicollinearity
+vif_values <- vif(main.model)[,1]
+barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "Orchid")
+abline(v = 10, lwd = 3, lty = 2)
+ggplot(select_data, aes(x = TOTIADL4_Cat, y = TOTIADL4)) + 
+  geom_point(color = "blue") +
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+
+
+
+main_yhat = main.model$fitted.values
+main_res = main.model$residuals #m1.yhat-fev
+main_h = hatvalues(main.model) #leverage
+main_r = rstandard(main.model) #internally studentized residuals
+main_rr = rstudent(main.model) #externally studentized residuals
+
+n = nrow(select_data)
+p = main.model$rank # dimensions
+main_sigma = sqrt( sum(main_res^2)/(n-p) )
+main_z = main_res/main_sigma #standardized residual
+
+## no outlier
+outlier <- rep(0, length(main_z))
+outlier[which(abs(main_rr) >= 3)] <- 1
+sum(outlier)
+outlier <- as.factor(outlier)
+
+qplot(x=main_yhat, y=main_rr, col=outlier)
+
+### partial regression plot
+avPlots(main.model)
+### Residual plots
+residualPlots(main.model,type="response")
+
+### normal
+qqPlot(main_z)
+hist(main_z)
+
+shapiro.test(main_z) ## reject but only for small sample size (<50)
+ks.test(main_z, "pnorm")
+library('nortest')
+lillie.test(main_z)
+
+
+### empirical cdf of main_z and N(0,1)
+sample_plot <- data.frame(z=main_z, rn=rnorm(length(main_z)))
+ggplot(sample_plot) +
+  stat_ecdf(aes(main_z),color="red", size=1, alpha=0.7) +
+  stat_ecdf(aes(rn),color="blue", size=1, alpha=0.7) +
+  ylab('') + xlab('') +
+  ggtitle('Empirical cdf of standardized residual and N(0,1)') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  annotate(geom = "label", 
+           x = 4, y = 0.6, 
+           label = "cdf of standardized residual",
+           fill = "red", 
+           color = "white", hjust = 1) +
+  annotate(geom = "label", 
+           x = 3, y = 0.4, 
+           label = "cdf of N(0, 1)",
+           fill = "blue", 
+           color = "white", hjust = 1)
 
 
 
