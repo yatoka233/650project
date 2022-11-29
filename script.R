@@ -207,7 +207,7 @@ par(mfrow=c(1,1))
 # select(CESDTOT4,USBORN,MARSTAT4,HEALTH4,OO49LANG,MALE,GRADE,
 #        NKIDS4,KHYPER41,MDIAB41,NFRAC41,U43S,CC43,EE46,HHA4,AGE4,
 #        TOTMMSE4,TOTIADL4,TOTADL4) %>%
-  
+
 colnames(new_data)
 library("gtsummary")
 new_data %>%
@@ -596,7 +596,7 @@ summary(BM20)
 ##### Building Models ####
 ##########################
 colnames(new_data)
-select_data <- new_data[,-c(1,4,5,23,24)] 
+select_data <- new_data[,-c(1,4,5,23,24,25)]
 # select_data <- new_data
 colnames(select_data)
 
@@ -684,23 +684,24 @@ par(mfrow=c(1,1))
 #### Stepwise regression ####
 #############################
 ##### step
-lr_step0 <- step(full.model.t, direction="both")
-summary(lr_step0)
-
-lr_step <- step(full.model.t2, direction="both")
+lr_step <- step(full.model.t, direction="both")
 summary(lr_step)
+
+lr_step1 <- step(full.model.t2, direction="both")
+summary(lr_step1)
+
 lr_step$anova
 par(mfrow=c(2,2)) 
 plot(lr_step)
 par(mfrow=c(1,1))
 
 ##### stepAIC
-step.model <- stepAIC(full.model.t2, direction = "both", trace = FALSE)
+step.model <- stepAIC(full.model.t, direction = "both", trace = FALSE)
 summary(step.model)
 step.model$anova
 
 ##### stepwise
-result <- stepAIC(full.model.t2, lm(CESDTOT4~1, data = select_data[-which(abs(full_z) >= 3),]), 
+result <- stepwise(full.model.t, lm(CESDTOT4~1, data = select_data), 
                   alpha.to.enter = 0.05, alpha.to.leave = 0.1)
 summary(result)
 
@@ -719,7 +720,7 @@ main.model <- lr_back
 vif_values <- vif(main.model)[,1]
 barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "Orchid")
 abline(v = 10, lwd = 3, lty = 2)
-ggplot(select_data, aes(x = TOTIADL4_Cat, y = TOTIADL4)) + 
+ggplot(select_data, aes(x = TOTIADL4, y = CESDTOT4)) + 
   geom_point(color = "blue") +
   geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
 
@@ -744,10 +745,21 @@ outlier <- as.factor(outlier)
 
 qplot(x=main_yhat, y=main_rr, col=outlier)
 
+tmp <- new_data[which(abs(main_rr) >= 3),]
+
+main.model2 <- lm(CESDTOT4 ~ USBORN + HEALTH4 + KHYPER41 + TOTMMSE4 + 
+                    TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + MARSTAT4_Cat + 
+                    TOTADL4_Cat, data = select_data[-which(abs(full_rr) >= 3),])
+summary(main.model)
+summary(main.model2)
+#### difference after taking out outliers
+(coefficients(main.model2) - coefficients(main.model))/coefficients(main.model2)*100
+
 ### partial regression plot
 avPlots(main.model)
 ### Residual plots
 residualPlots(main.model,type="response")
+table(select_data$TOTADL4_Cat)
 
 ### normal
 qqPlot(main_z)
@@ -777,6 +789,33 @@ ggplot(sample_plot) +
            label = "cdf of N(0, 1)",
            fill = "blue", 
            color = "white", hjust = 1)
+
+### independence
+main_res1 <- main_res[1:length(main_res)-1]
+main_res2 <- main_res[2:length(main_res)]
+qplot(x=main_res1, y=main_res2)
+
+
+
+
+#####################
+#### Interaction ####
+#####################
+summary(main.model)
+write.csv(select_data, "E:/Biostat Study/BIOSTAT 650/Group Project/code/select_data.csv")
+summary(select_data)
+
+inter.model <- lm(formula = CESDTOT4 ~ USBORN + HEALTH4 + KHYPER41 + TOTMMSE4 + 
+                    TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + MARSTAT4_Cat + 
+                    TOTADL4_Cat + TOTMMSE4*TOTIADL4, data = select_data)
+summary(inter.model)
+
+
+
+
+
+
+
 
 
 
