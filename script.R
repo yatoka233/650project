@@ -715,8 +715,9 @@ summary(step.model)
 step.model$anova
 
 ##### stepwise
-result <- stepwise(CESDTOT4 ~ GRADE + USBORN + HEALTH4 + KHYPER41 + 
-                     TOTMMSE4 + TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + TOTADL4_Cat,
+result <- stepwise(CESDTOT4 ~ USBORN + MARSTAT4 + HEALTH4 + KHYPER41 + 
+                     TOTMMSE4 + TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + 
+                     TOTADL4_Cat,
                    CESDTOT4~1, 
                   alpha.to.enter = 0.05, alpha.to.leave = 0.1, data=select_data)
 summary(result)
@@ -763,8 +764,9 @@ qplot(x=main_yhat, y=main_rr, col=outlier)
 
 tmp <- new_data[which(abs(main_rr) >= 3),]
 
-main.model2 <- lm(CESDTOT4 ~ USBORN + MARSTAT4 + HEALTH4 + KHYPER41 + TOTMMSE4 + 
-                    TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + TOTADL4_Cat, data = select_data[-which(abs(full_rr) >= 3),])
+main.model2 <- lm(CESDTOT4 ~ USBORN + MARSTAT4 + HEALTH4 + KHYPER41 + 
+                    TOTMMSE4 + TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + 
+                    TOTADL4_Cat, data = select_data[-which(abs(full_rr) >= 3),])
 summary(main.model)
 summary(main.model2)
 #### difference after taking out outliers
@@ -816,11 +818,13 @@ qplot(x=main_res1, y=main_res2)
 #### Interaction ####
 #####################
 summary(main.model)
-write.csv(select_data, "E:/Biostat Study/BIOSTAT 650/Group Project/code/select_data.csv")
+write.csv(select_data, "E:/Biostat Study/BIOSTAT 650/Group Project/select_data.csv")
 summary(select_data)
 
-inter.model <- lm(formula = CESDTOT4 ~ USBORN + MARSTAT4 + HEALTH4 + KHYPER41 + TOTMMSE4 + 
-                    TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + TOTADL4_Cat, 
+anova(main.model)
+inter.model <- lm(formula = CESDTOT4 ~ USBORN + MARSTAT4 + HEALTH4 + KHYPER41 + 
+                    TOTMMSE4 + TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + 
+                    TOTADL4_Cat, 
                   data = select_data)
 summary(inter.model)
 
