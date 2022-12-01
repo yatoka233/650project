@@ -13,5 +13,22 @@
 
 ## 3. Imputation
 * We tried 4 kinds of imputation for continuous variables (**KNN**, **MICE**, **MEAN**, **MEDIAN**).
-* We use mode to impute categorical variables.
+* We tried mode imputation for categorical variables.
+* We finally use MICE for imputation. (PMM (Predictive Mean Matching) – For numeric variables, logreg(Logistic Regression) – For Binary Variables( with 2 levels), polyreg(Bayesian polytomous regression) – For Factor Variables (>= 2 levels), Proportional odds model (ordered, >= 2 levels))
 * We drop missing outcome variables.
+
+## 4. Descriptive analysis after imputation
+
+## 5. Bivariate analysis of outcome and covariate
+
+## 6. Data restructure exploration and significance check
+
+## 7. Stepwise
+
+## 8. Main model diagnosis
+
+## 9. Interaction exploration
+
+## 10. Interpretation
+
+
