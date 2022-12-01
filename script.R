@@ -9,6 +9,9 @@
 ##### Data Analysis Script #####
 
 rm(list=ls())
+setwd("E:/Biostat Study/BIOSTAT 650/Group Project")
+set.seed(123)
+
 library('readxl')
 library('ggplot2')
 library('ggpubr')
@@ -20,12 +23,10 @@ library('car')
 library("DMwR2")
 library("Hmisc")
 
-library('utils')
+source('code/utils.R')
 
 
 #### import data ####
-setwd("E:/Biostat Study/BIOSTAT 650/Group Project")
-set.seed(123)
 
 inputFile <- "Depression Data.xls"
 raw_data <- read_excel(inputFile, sheet=1, na='NA')
@@ -373,7 +374,9 @@ summary(BM2)
 ## after transform grade could be significant
 table(new_data$GRADE)
 new_data$GRADE_Cat <- 0
-new_data$GRADE_Cat[new_data$GRADE>=7 & new_data$GRADE<=10] <- 1
+new_data$GRADE_Cat[new_data$GRADE>=6 & new_data$GRADE<=12] <- 1
+new_data$GRADE_Cat[new_data$GRADE>=12] <- 2
+# new_data$GRADE_Cat[new_data$GRADE>=7 & new_data$GRADE<=10] <- 1
 table(new_data$GRADE_Cat)
 
 M2=lm(CESDTOT4~GRADE_Cat,data=new_data)
@@ -439,8 +442,10 @@ summary(M6)
 BM6=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+NKIDS4,data=new_data)
 summary(BM6)
 
+table(new_data$NKIDS4)
 new_data$NKIDS4_Cat <- 0
-new_data$NKIDS4_Cat[new_data$NKIDS4>=14] <- 1
+new_data$NKIDS4_Cat[new_data$NKIDS4>=4] <- 1
+new_data$NKIDS4_Cat <- as.factor(new_data$NKIDS4_Cat)
 table(new_data$NKIDS4_Cat)
 
 M6=lm(CESDTOT4~as.factor(NKIDS4_Cat),data=new_data)
@@ -456,11 +461,12 @@ BM7=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+factor(HEALTH4),data=new_data)
 anova(BM7)
 
 table(new_data$HEALTH4)
-new_data$HEALTH4[new_data$HEALTH4==2] <- 1
-table(new_data$HEALTH4)
-M7=lm(CESDTOT4~factor(HEALTH4),data=new_data)
+new_data$HEALTH4_Cat <- new_data$HEALTH4
+new_data$HEALTH4_Cat[new_data$HEALTH4==2] <- 1
+table(new_data$HEALTH4_Cat)
+M7=lm(CESDTOT4~factor(HEALTH4_Cat),data=new_data)
 summary(M7)
-BM7=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+factor(HEALTH4),data=new_data)
+BM7=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+factor(HEALTH4_Cat),data=new_data)
 anova(BM7)
 
 #8 KHYPER41 significant
@@ -557,8 +563,9 @@ M17=lm(CESDTOT4~EE46,data=new_data)
 summary(M17)
 
 table(new_data$EE46)
-new_data$EE46[new_data$EE46==4] <- 1
-M17=lm(CESDTOT4~EE46,data=new_data)
+new_data$EE46_Cat <- new_data$EE46
+new_data$EE46_Cat[new_data$EE46==4] <- 1
+M17=lm(CESDTOT4~EE46_Cat,data=new_data)
 summary(M17)
 
 
@@ -596,8 +603,15 @@ summary(BM20)
 ##### Building Models ####
 ##########################
 colnames(new_data)
-select_data <- new_data[,-c(1,4,5,23,24,25)]
-# select_data <- new_data
+# Delete: NKIDS TOTIADL_Cat TOTADL4
+## RE: GRADE AGE MARSTAT4 HEALTH4 TOTADL4 EE46
+## combine categories
+# select_data <- new_data[,-c(1,3,4,5,6,14,16,23,26)]
+
+# Delete: TOTIADL_Cat TOTADL4
+## RE: GRADE NKIDS 
+## don't combine categories
+select_data <- new_data[,-c(1,5,14,21,22,24,25,26,28)]
 colnames(select_data)
 
 select_data$GRADE_Cat <- as.factor(select_data$GRADE_Cat)
@@ -701,8 +715,10 @@ summary(step.model)
 step.model$anova
 
 ##### stepwise
-result <- stepwise(full.model.t, lm(CESDTOT4~1, data = select_data), 
-                  alpha.to.enter = 0.05, alpha.to.leave = 0.1)
+result <- stepwise(CESDTOT4 ~ GRADE + USBORN + HEALTH4 + KHYPER41 + 
+                     TOTMMSE4 + TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + TOTADL4_Cat,
+                   CESDTOT4~1, 
+                  alpha.to.enter = 0.05, alpha.to.leave = 0.1, data=select_data)
 summary(result)
 
 ##### back ward after stepwise (same result)
@@ -737,7 +753,7 @@ p = main.model$rank # dimensions
 main_sigma = sqrt( sum(main_res^2)/(n-p) )
 main_z = main_res/main_sigma #standardized residual
 
-## no outlier
+## outlier
 outlier <- rep(0, length(main_z))
 outlier[which(abs(main_rr) >= 3)] <- 1
 sum(outlier)
@@ -747,9 +763,8 @@ qplot(x=main_yhat, y=main_rr, col=outlier)
 
 tmp <- new_data[which(abs(main_rr) >= 3),]
 
-main.model2 <- lm(CESDTOT4 ~ USBORN + HEALTH4 + KHYPER41 + TOTMMSE4 + 
-                    TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + MARSTAT4_Cat + 
-                    TOTADL4_Cat, data = select_data[-which(abs(full_rr) >= 3),])
+main.model2 <- lm(CESDTOT4 ~ USBORN + MARSTAT4 + HEALTH4 + KHYPER41 + TOTMMSE4 + 
+                    TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + TOTADL4_Cat, data = select_data[-which(abs(full_rr) >= 3),])
 summary(main.model)
 summary(main.model2)
 #### difference after taking out outliers
@@ -759,7 +774,6 @@ summary(main.model2)
 avPlots(main.model)
 ### Residual plots
 residualPlots(main.model,type="response")
-table(select_data$TOTADL4_Cat)
 
 ### normal
 qqPlot(main_z)
@@ -805,9 +819,9 @@ summary(main.model)
 write.csv(select_data, "E:/Biostat Study/BIOSTAT 650/Group Project/code/select_data.csv")
 summary(select_data)
 
-inter.model <- lm(formula = CESDTOT4 ~ USBORN + HEALTH4 + KHYPER41 + TOTMMSE4 + 
-                    TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + MARSTAT4_Cat + 
-                    TOTADL4_Cat + TOTMMSE4*TOTIADL4, data = select_data)
+inter.model <- lm(formula = CESDTOT4 ~ USBORN + MARSTAT4 + HEALTH4 + KHYPER41 + TOTMMSE4 + 
+                    TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + TOTADL4_Cat, 
+                  data = select_data)
 summary(inter.model)
 
 
