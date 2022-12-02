@@ -603,20 +603,36 @@ summary(BM20)
 ##### Building Models ####
 ##########################
 colnames(new_data)
-# Delete: NKIDS TOTIADL_Cat TOTADL4
-## RE: GRADE AGE MARSTAT4 HEALTH4 TOTADL4 EE46
-## combine categories
-# select_data <- new_data[,-c(1,3,4,5,6,14,16,23,26)]
 
-# Delete: TOTIADL_Cat TOTADL4
-## RE: GRADE NKIDS 
-## don't combine categories
-select_data <- new_data[,-c(1,5,14,21,22,24,25,26,28)]
+demo_idx <- c(1,2,3,4,5,18,19)
+physi_idx <- c(7,8,9,10,17)
+outcome_idx <- c(12)
+poi_idx <- c(13,16)
+
+for (i in physi_idx){
+  new_data[,i] <- as.numeric(as.character(new_data[,i]))
+}
+
+new_data$Chronic <- new_data$KHYPER41+new_data$MDIAB41+new_data$NFRAC41+
+  new_data$U43S+new_data$HHA4
+
+for (i in physi_idx){
+  new_data[,i] <- as.factor(new_data[,i])
+}
+
+colnames(new_data)
+table(new_data$Chronic)
+new_data$Chronic[new_data$Chronic==4] <- 3
+new_data$Chronic <- as.factor(new_data$Chronic)
+table(new_data$Chronic)
+
+physi_idx <- c(29)
+
+
+select_data <- new_data[,c(demo_idx,physi_idx,outcome_idx,poi_idx)]
 colnames(select_data)
-
-select_data$GRADE_Cat <- as.factor(select_data$GRADE_Cat)
-select_data$AGE4_Cat <- as.factor(select_data$AGE4_Cat)
 summary(select_data)
+
 
 
 #### Full model ####
@@ -694,44 +710,10 @@ par(mfrow=c(1,1))
 
 
 
-#############################
-#### Stepwise regression ####
-#############################
-##### step
-lr_step <- step(full.model.t, direction="both")
-summary(lr_step)
-
-lr_step1 <- step(full.model.t2, direction="both")
-summary(lr_step1)
-
-lr_step$anova
-par(mfrow=c(2,2)) 
-plot(lr_step)
-par(mfrow=c(1,1))
-
-##### stepAIC
-step.model <- stepAIC(full.model.t, direction = "both", trace = FALSE)
-summary(step.model)
-step.model$anova
-
-##### stepwise
-result <- stepwise(CESDTOT4 ~ USBORN + MARSTAT4 + HEALTH4 + KHYPER41 + 
-                     TOTMMSE4 + TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + 
-                     TOTADL4_Cat,
-                   CESDTOT4~1, 
-                  alpha.to.enter = 0.05, alpha.to.leave = 0.1, data=select_data)
-summary(result)
-
-##### back ward after stepwise (same result)
-lr_back <- step(lr_step, direction="backward")
-summary(lr_back)
-
-
-
 ###################
 #### Diagnosis ####
 ###################
-main.model <- lr_back
+main.model <- full.model.t
 
 ### multicollinearity
 vif_values <- vif(main.model)[,1]
@@ -762,20 +744,6 @@ outlier <- as.factor(outlier)
 
 qplot(x=main_yhat, y=main_rr, col=outlier)
 
-tmp <- new_data[which(abs(main_rr) >= 3),]
-
-main.model2 <- lm(CESDTOT4 ~ USBORN + MARSTAT4 + HEALTH4 + KHYPER41 + 
-                    TOTMMSE4 + TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + 
-                    TOTADL4_Cat, data = select_data[-which(abs(full_rr) >= 3),])
-summary(main.model)
-summary(main.model2)
-#### difference after taking out outliers
-(coefficients(main.model2) - coefficients(main.model))/coefficients(main.model2)*100
-
-### partial regression plot
-avPlots(main.model)
-### Residual plots
-residualPlots(main.model,type="response")
 
 ### normal
 qqPlot(main_z)
@@ -814,18 +782,66 @@ qplot(x=main_res1, y=main_res2)
 
 
 
+################
+# Transform ####
+################
+summary(main.model)
+main.model2 <- lm(formula = CESDTOT4 ~ .+I(TOTIADL4^2), data = select_data)
+summary(main.model2)
+
+### plots
+par(mfrow=c(2,2)) 
+plot(main.model2)
+par(mfrow=c(1,1))
+### partial regression plot
+avPlots(main.model2)
+### Residual plots
+residualPlots(main.model2,type="response")
+
+
+main_yhat2 = main.model2$fitted.values
+main_res2 = main.model2$residuals #m1.yhat-fev
+main_h2 = hatvalues(main.model2) #leverage
+main_r2 = rstandard(main.model2) #internally studentized residuals
+main_rr2 = rstudent(main.model2) #externally studentized residuals
+
+n = nrow(select_data)
+p = main.model2$rank # dimensions
+main_sigma2 = sqrt( sum(main_res2^2)/(n-p) )
+main_z2 = main_res/main_sigma2 #standardized residual
+
+## outlier
+outlier <- rep(0, length(main_z2))
+outlier[which(abs(main_rr2) >= 3)] <- 1
+sum(outlier)
+outlier <- as.factor(outlier)
+
+qplot(x=main_yhat2, y=main_rr2, col=outlier)
+
+
+### normal
+qqPlot(main_z2)
+hist(main_z2)
+
+shapiro.test(main_z2) ## reject but only for small sample size (<50)
+ks.test(main_z2, "pnorm")
+library('nortest')
+lillie.test(main_z2)
+
+
+
+
+
 #####################
 #### Interaction ####
 #####################
-summary(main.model)
+summary(main.model2)
 write.csv(select_data, "E:/Biostat Study/BIOSTAT 650/Group Project/select_data.csv")
 summary(select_data)
 
-anova(main.model)
-inter.model <- lm(formula = CESDTOT4 ~ USBORN + MARSTAT4 + HEALTH4 + KHYPER41 + 
-                    TOTMMSE4 + TOTIADL4 + CC43 + EE46 + OO49LANG + MALE + GRADE_Cat + 
-                    TOTADL4_Cat, 
-                  data = select_data)
+main.model$terms[[3]]
+
+inter.model <- lm(formula = CESDTOT4 ~ ., data = select_data)
 summary(inter.model)
 
 
