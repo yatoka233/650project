@@ -374,9 +374,9 @@ summary(BM2)
 ## after transform grade could be significant
 table(new_data$GRADE)
 new_data$GRADE_Cat <- 0
-new_data$GRADE_Cat[new_data$GRADE>=6 & new_data$GRADE<=12] <- 1
+new_data$GRADE_Cat[new_data$GRADE>=6 & new_data$GRADE<=11] <- 1
 new_data$GRADE_Cat[new_data$GRADE>=12] <- 2
-# new_data$GRADE_Cat[new_data$GRADE>=7 & new_data$GRADE<=10] <- 1
+new_data$GRADE_Cat <- as.factor(new_data$GRADE_Cat)
 table(new_data$GRADE_Cat)
 
 M2=lm(CESDTOT4~GRADE_Cat,data=new_data)
@@ -401,13 +401,12 @@ summary(BM4)
 
 table(new_data$AGE4)
 new_data$AGE4_Cat <- 0
-new_data$AGE4_Cat[new_data$AGE4>=79 & new_data$AGE4<=84] <- 1
-new_data$AGE4_Cat[new_data$AGE4>=85 & new_data$AGE4<=88] <- 2
-new_data$AGE4_Cat[new_data$AGE4>=89] <- 3
-
+new_data$AGE4_Cat[new_data$AGE4>=80 & new_data$AGE4<=89] <- 1
+new_data$AGE4_Cat[new_data$AGE4>=90] <- 2
 new_data$AGE4_Cat <- as.factor(new_data$AGE4_Cat)
 
 # new_data$AGE4_Cat <- split_IQR(new_data$AGE4)
+#significant after cate
 table(new_data$AGE4_Cat)
 
 M4=lm(CESDTOT4~AGE4_Cat,data=new_data)
@@ -604,8 +603,9 @@ summary(BM20)
 ##########################
 colnames(new_data)
 
-demo_idx <- c(1,2,3,4,5,18,19)
-physi_idx <- c(7,8,9,10,17)
+demo_idx <- c(20,2,21,4,18,19) # Grade_Cat USborn Age_Cat Marstat language Male
+physi_idx <- c(7,8,9,10,17) # 
+cong_idx <- c(11)
 outcome_idx <- c(12)
 poi_idx <- c(13,16)
 
@@ -629,7 +629,7 @@ table(new_data$Chronic)
 physi_idx <- c(29)
 
 
-select_data <- new_data[,c(demo_idx,physi_idx,outcome_idx,poi_idx)]
+select_data <- new_data[,c(demo_idx,physi_idx,cong_idx,outcome_idx,poi_idx)]
 colnames(select_data)
 summary(select_data)
 
@@ -835,6 +835,7 @@ lillie.test(main_z2)
 #####################
 #### Interaction ####
 #####################
+summary(main.model)
 summary(main.model2)
 write.csv(select_data, "E:/Biostat Study/BIOSTAT 650/Group Project/select_data.csv")
 summary(select_data)
