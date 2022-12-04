@@ -19,16 +19,18 @@
 
 ## 4. Descriptive analysis after imputation
 
-## 5. Bivariate analysis of outcome and covariate
+## 5. Data restructure (make groups for Age and Grade) and correlation analysis (IADL and ADL)
 
-## 6. Data restructure exploration and significance check
+## 6. Bivariate analysis of outcome and covariate (Drop Nkids)
 
-## 7. Stepwise
+## 7. Outcome transform
 
 ## 8. Main model diagnosis
 
-## 9. Interaction exploration
+## 9. Significance analysis (sequential model)
 
-## 10. Interpretation
+## 10. Interaction exploration
+
+## 11. Interpretation
 
 
