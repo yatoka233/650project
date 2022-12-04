@@ -1,7 +1,7 @@
 ######################################################################### 
 #-----------------------------------------------------------------------#
 # Created on:    2022/11/8                                              #
-# Updated on:    2022/11/20                                             #
+# Updated on:    2022/12/4                                              #
 # EMAIL:         dengfy@umich.edu                                       #
 #                Umich  Feiyang Deng.                                   #
 #########################################################################
@@ -22,6 +22,7 @@ library('MASS')
 library('car')
 library("DMwR2")
 library("Hmisc")
+library("dplyr")
 
 source('code/utils.R')
 
@@ -352,6 +353,8 @@ corrplot.mixed(cormat, lower.col = "black", number.cex = 1,p.mat = pres$p, sig.l
 cormat = cor(cate_data, method = "spearman")
 pres <- cor.mtest(cate_data, conf.level = .95)
 corrplot.mixed(cormat, lower.col = "black", number.cex = 1,p.mat = pres$p, sig.level = .05)
+
+
 
 ######################################
 
@@ -715,6 +718,15 @@ par(mfrow=c(1,1))
 ###################
 main.model <- full.model.t
 
+### plots
+par(mfrow=c(2,2)) 
+plot(main.model)
+par(mfrow=c(1,1))
+### partial regression plot
+avPlots(main.model)
+### Residual plots
+residualPlots(main.model,type="response")
+
 ### multicollinearity
 vif_values <- vif(main.model)[,1]
 barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "Orchid")
@@ -780,8 +792,6 @@ main_res2 <- main_res[2:length(main_res)]
 qplot(x=main_res1, y=main_res2)
 
 
-
-
 ################
 # Transform ####
 ################
@@ -790,7 +800,7 @@ main.model2 <- lm(formula = CESDTOT4 ~ .+I(TOTIADL4^2), data = select_data)
 summary(main.model2)
 
 ### plots
-par(mfrow=c(2,2)) 
+par(mfrow=c(2,2))
 plot(main.model2)
 par(mfrow=c(1,1))
 ### partial regression plot
@@ -828,6 +838,48 @@ ks.test(main_z2, "pnorm")
 library('nortest')
 lillie.test(main_z2)
 
+
+####################################
+#### Age_Cat significant _> not ####
+####################################
+## possible reason: relationship between Age_Cat and IADL
+
+kruskal.test(select_data$AGE4_Cat, select_data$TOTIADL4)
+ggplot(select_data, aes(x = AGE4_Cat, y = TOTIADL4)) + 
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+
+## sequential
+lr1 <- lm(CESDTOT4~GRADE_Cat+USBORN+AGE4_Cat+MARSTAT4+OO49LANG+MALE, data = select_data)
+summary(lr1)
+lr2 <- lm(CESDTOT4~GRADE_Cat+USBORN+AGE4_Cat+MARSTAT4+OO49LANG+MALE+
+            Chronic+TOTMMSE4, data = select_data)
+summary(lr2)
+lr3 <- lm(CESDTOT4~GRADE_Cat+USBORN+AGE4_Cat+MARSTAT4+OO49LANG+MALE+
+            Chronic+TOTMMSE4+
+            TOTIADL4+EE46+I(TOTIADL4^2), data = select_data)
+summary(lr3)
+
+seq_table1 <- summary(lr1)[[4]][,c(1,4)]
+coef <- as.data.frame(rownames(seq_table1))
+colnames(coef) <- c('coef')
+seq_table1 <- cbind(coef, seq_table1)
+seq_table1
+
+seq_table2 <- summary(lr2)[[4]][,c(1,4)]
+coef <- as.data.frame(rownames(seq_table2))
+colnames(coef) <- c('coef')
+seq_table2 <- cbind(coef, seq_table2)
+seq_table2
+
+seq_table3 <- summary(lr3)[[4]][,c(1,4)]
+coef <- as.data.frame(rownames(seq_table3))
+colnames(coef) <- c('coef')
+seq_table3 <- cbind(coef, seq_table3)
+seq_table3
+
+seq_table <- right_join(right_join(seq_table1, seq_table2, 
+                                   by='coef',suffix = c(".1", ".2")),
+                        seq_table3, by='coef')
 
 
 
