@@ -277,7 +277,7 @@ ggplot(new_data, aes(x=as.factor(GRADE))) +
   geom_histogram(color="lightblue",stat="count", fill="#69b3a2", alpha=0.7)
 ggplot(new_data, aes(x=as.factor(HEALTH4))) +
   geom_histogram(color="lightblue",stat="count", fill="#69b3a2", alpha=0.7)
-ggplot(new_data, aes(x=as.factor(NKIDS4))) +
+ggplot(new_data, aes(x=as.factor(TOTIADL4))) +
   geom_histogram(color="lightblue",stat="count", fill="#69b3a2", alpha=0.7)
 ggplot(new_data, aes(x=as.factor(EE46))) +
   geom_histogram(color="lightblue",stat="count", fill="#69b3a2", alpha=0.7)
@@ -315,7 +315,7 @@ ggplot(new_data, aes(x = TOTMMSE4, y = CESDTOT4)) +
 ##### outcome vs categorical ####
 ggplot(new_data, aes(x = EE46,y=CESDTOT4)) +
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
-ggplot(new_data, aes(x = as.factor(GRADE), y = CESDTOT4)) + 
+ggplot(new_data, aes(x = as.factor(GRADE_Cat), y = CESDTOT4)) + 
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
 ggplot(new_data, aes(x = as.factor(NKIDS4), y = CESDTOT4)) + 
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
@@ -332,6 +332,17 @@ ggplot(new_data, aes(x = as.factor(TOTIADL4), y = CESDTOT4)) +
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
 ggplot(new_data, aes(x = as.factor(TOTMMSE4), y = CESDTOT4)) + 
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+
+
+
+
+p1 <- ggplot(new_data, aes(x = as.factor(TOTIADL4), y = CESDTOT4)) + 
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+p2 <- ggplot(new_data, aes(x = EE46,y=CESDTOT4)) +
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+ggarrange(p1,p2,
+          ncol = 2, nrow = 1)
+
 
 
 #### correlation of covariates ####
@@ -800,6 +811,7 @@ qplot(x=main_res1, y=main_res2)
 summary(main.model)
 ## Scale
 select_data$TOTIADL4 <- scale(select_data$TOTIADL4, scale = FALSE)
+select_data$TOTMMSE4 <- scale(select_data$TOTMMSE4, scale = FALSE)
 main.model2 <- lm(formula = CESDTOT4 ~ .+I(TOTIADL4^2), data = select_data)
 summary(main.model2)
 
@@ -829,7 +841,7 @@ main_rr2 = rstudent(main.model2) #externally studentized residuals
 n = nrow(select_data)
 p = main.model2$rank # dimensions
 main_sigma2 = sqrt( sum(main_res2^2)/(n-p) )
-main_z2 = main_res/main_sigma2 #standardized residual
+main_z2 = main_res2/main_sigma2 #standardized residual
 
 ## outlier
 outlier <- rep(0, length(main_z2))
@@ -858,7 +870,8 @@ lillie.test(main_z2)
 
 kruskal.test(select_data$AGE4_Cat, select_data$TOTIADL4)
 ggplot(select_data, aes(x = AGE4_Cat, y = TOTIADL4)) + 
-  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
+  geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray") +
+  ggtitle("TOTIADL4 vs. AGE4_Cat")
 
 ## sequential
 lr1 <- lm(CESDTOT4~GRADE_Cat+USBORN+AGE4_Cat+MARSTAT4+OO49LANG+MALE, data = select_data)
@@ -909,21 +922,26 @@ main.model2$terms[[3]]
 #### interaction discovery
 p1 <- ggplot(select_data[select_data$MARSTAT4==1,], aes(x=TOTIADL4,y=CESDTOT4)) +
   geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE, size=2) +
+  ggtitle("Married")
 p2 <- ggplot(select_data[select_data$MARSTAT4==2,], aes(x=TOTIADL4,y=CESDTOT4)) +
   geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE, size=2) +
+  ggtitle("Separated")
 p3 <- ggplot(select_data[select_data$MARSTAT4==3,], aes(x=TOTIADL4,y=CESDTOT4)) +
   geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE, size=2) +
+  ggtitle("Divorced")
 p4 <- ggplot(select_data[select_data$MARSTAT4==4,], aes(x=TOTIADL4,y=CESDTOT4)) +
   geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE, size=2) +
+  ggtitle("Widowed")
 p5 <- ggplot(select_data[select_data$MARSTAT4==5,], aes(x=TOTIADL4,y=CESDTOT4)) +
   geom_point(color = "blue")+
-  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE, size=2) +
+  ggtitle("Never Married")
 ggarrange(p1,p2,p3,p4,p5,
-          ncol = 3, nrow = 2)
+          ncol = 5, nrow = 1)
 
 inter.model <- lm(formula = CESDTOT4 ~ .+I(TOTIADL4^2) + TOTIADL4*MARSTAT4, data = select_data)
 summary(inter.model)
@@ -937,6 +955,10 @@ avPlots(inter.model)
 ### Residual plots
 residualPlots(inter.model,type="response")
 
+### multicollinearity
+vif_values <- vif(inter.model,type = 'predictor')[,1]
+barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "Orchid")
+abline(v = 10, lwd = 3, lty = 2)
 
 inter_yhat = inter.model$fitted.values
 inter_res = inter.model$residuals #m1.yhat-fev
@@ -956,11 +978,12 @@ sum(outlier)
 outlier <- as.factor(outlier)
 
 qplot(x=inter_yhat, y=inter_rr, col=outlier,
-      xlab="Fitted values", ylab="External studentized residuals")
+      xlab="Fitted values", ylab="External studentized residuals", 
+      main="External Studentized Residule vs. Fitted Values")
 
 
 ### normal
-qqPlot(inter_z)
+qqPlot(inter_z, main='QQplot of Standardized Residuals')
 hist(inter_z)
 
 shapiro.test(inter_z) ## reject but only for small sample size (<50)
@@ -968,7 +991,15 @@ ks.test(inter_z, "pnorm")
 library('nortest')
 lillie.test(inter_z)
 
+### independence
+inter_res1 <- inter_res[1:length(inter_res)-1]
+inter_res2 <- inter_res[2:length(inter_res)]
+qplot(x=inter_res1, y=inter_res2,col='red',xlab='res i-i', ylab='res i', 
+      main='residual i vs. residual i-1')
 
+
+###
+library('lmtest')
 
 
 
