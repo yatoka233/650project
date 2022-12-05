@@ -232,7 +232,7 @@ new_data %>%
                           AGE4 ~ 'continuous',
                           TOTMMSE4 ~ 'continuous',
                           TOTIADL4 ~ 'continuous',
-                          TOTADL4 ~ 'continuous'),
+                          TOTADL4 ~ 'categorical'),
               statistic = list(all_continuous() ~ "{mean} ({sd}) min:{min} max:{max} IQR:[{p25}, {p75}]",
                                all_categorical() ~ "{n} ({p}%)"),
               digits = list(all_continuous() ~ c(2,2),
@@ -354,7 +354,9 @@ cormat = cor(cate_data, method = "spearman")
 pres <- cor.mtest(cate_data, conf.level = .95)
 corrplot.mixed(cormat, lower.col = "black", number.cex = 1,p.mat = pres$p, sig.level = .05)
 
+cor.test(contin_data$TOTIADL4, contin_data$TOTADL4)
 
+table(contin_data$TOTADL4)
 
 ######################################
 
@@ -796,6 +798,8 @@ qplot(x=main_res1, y=main_res2)
 # Transform ####
 ################
 summary(main.model)
+## Scale
+select_data$TOTIADL4 <- scale(select_data$TOTIADL4, scale = FALSE)
 main.model2 <- lm(formula = CESDTOT4 ~ .+I(TOTIADL4^2), data = select_data)
 summary(main.model2)
 
@@ -808,6 +812,13 @@ avPlots(main.model2)
 ### Residual plots
 residualPlots(main.model2,type="response")
 
+### multicollinearity
+vif_values <- vif(main.model2)[,1]
+barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "Orchid")
+abline(v = 10, lwd = 3, lty = 2)
+ggplot(select_data, aes(x = TOTIADL4, y = CESDTOT4)) + 
+  geom_point(color = "blue") +
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
 
 main_yhat2 = main.model2$fitted.values
 main_res2 = main.model2$residuals #m1.yhat-fev
@@ -826,7 +837,8 @@ outlier[which(abs(main_rr2) >= 3)] <- 1
 sum(outlier)
 outlier <- as.factor(outlier)
 
-qplot(x=main_yhat2, y=main_rr2, col=outlier)
+qplot(x=main_yhat2, y=main_rr2, col=outlier,
+      xlab="Fitted values", ylab="External studentized residuals")
 
 
 ### normal
@@ -881,7 +893,7 @@ seq_table <- right_join(right_join(seq_table1, seq_table2,
                                    by='coef',suffix = c(".1", ".2")),
                         seq_table3, by='coef')
 
-
+seq_table
 
 
 #####################
@@ -892,16 +904,76 @@ summary(main.model2)
 write.csv(select_data, "E:/Biostat Study/BIOSTAT 650/Group Project/select_data.csv")
 summary(select_data)
 
-main.model$terms[[3]]
+main.model2$terms[[3]]
 
-inter.model <- lm(formula = CESDTOT4 ~ ., data = select_data)
+#### interaction discovery
+p1 <- ggplot(select_data[select_data$MARSTAT4==1,], aes(x=TOTIADL4,y=CESDTOT4)) +
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+p2 <- ggplot(select_data[select_data$MARSTAT4==2,], aes(x=TOTIADL4,y=CESDTOT4)) +
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+p3 <- ggplot(select_data[select_data$MARSTAT4==3,], aes(x=TOTIADL4,y=CESDTOT4)) +
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+p4 <- ggplot(select_data[select_data$MARSTAT4==4,], aes(x=TOTIADL4,y=CESDTOT4)) +
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+p5 <- ggplot(select_data[select_data$MARSTAT4==5,], aes(x=TOTIADL4,y=CESDTOT4)) +
+  geom_point(color = "blue")+
+  geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
+ggarrange(p1,p2,p3,p4,p5,
+          ncol = 3, nrow = 2)
+
+inter.model <- lm(formula = CESDTOT4 ~ .+I(TOTIADL4^2) + TOTIADL4*MARSTAT4, data = select_data)
 summary(inter.model)
+anova(inter.model)
+### plots
+par(mfrow=c(2,2))
+plot(inter.model)
+par(mfrow=c(1,1))
+### partial regression plot
+avPlots(inter.model)
+### Residual plots
+residualPlots(inter.model,type="response")
+
+
+inter_yhat = inter.model$fitted.values
+inter_res = inter.model$residuals #m1.yhat-fev
+inter_h = hatvalues(inter.model) #leverage
+inter_r = rstandard(inter.model) #internally studentized residuals
+inter_rr = rstudent(inter.model) #externally studentized residuals
+
+n = nrow(select_data)
+p = inter.model$rank # dimensions
+inter_sigma = sqrt( sum(inter_res^2)/(n-p) )
+inter_z = inter_res/inter_sigma #standardized residual
+
+## outlier
+outlier <- rep(0, length(inter_z))
+outlier[which(abs(inter_rr) >= 3)] <- 1
+sum(outlier)
+outlier <- as.factor(outlier)
+
+qplot(x=inter_yhat, y=inter_rr, col=outlier,
+      xlab="Fitted values", ylab="External studentized residuals")
+
+
+### normal
+qqPlot(inter_z)
+hist(inter_z)
+
+shapiro.test(inter_z) ## reject but only for small sample size (<50)
+ks.test(inter_z, "pnorm")
+library('nortest')
+lillie.test(inter_z)
 
 
 
 
 
-
+tmp <- summary(inter.model)$coefficients
+write.csv(tmp, "E:/Biostat Study/BIOSTAT 650/Group Project/coef_table.csv")
 
 
 
