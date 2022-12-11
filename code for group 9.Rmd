@@ -7,7 +7,7 @@
 #########################################################################
 
 ##### Data Analysis Script #####
-
+```{r}
 rm(list=ls())
 setwd("E:/Biostat Study/BIOSTAT 650/Group Project")
 set.seed(123)
@@ -25,37 +25,43 @@ library("Hmisc")
 library("dplyr")
 
 source('code/utils.R')
-
+```
 
 #### import data ####
-
+```{r}
+setwd("E:/Biostat Study/BIOSTAT 650/Group Project")
 inputFile <- "Depression Data.xls"
 raw_data <- read_excel(inputFile, sheet=1, na='NA')
 raw_data <- as.data.frame(raw_data)
 
 summary(raw_data)
-
+```
 
 #### Visualize missing values
+```{r}
 md.pattern(raw_data)
 aggr(raw_data, prop=F, numbers=T)
 
-
+```
 ###############################################################
 #### Descriptive analysis for complete and incomplete data ####
 ###############################################################
 
 
 ## add indicator to identify complete rows
+```{r}
 na_rows <- which(rowSums(is.na(raw_data)) > 0)
 raw_data$complete <- 1
 raw_data$complete[na_rows] <- 0
 raw_data$complete <- as.factor(raw_data$complete)
 
+```
 
 ### Descriptive analysis of AGE4, TOTMMSE4, TOTIADL4, TOTADL4, EE46
 ## All continuous variables (except outcome) and one categorical predictor of interest
 #### Boxplot  ####
+```{r}
+
 ggplot(raw_data, aes(x=complete, y=AGE4, fill=complete)) +
   geom_boxplot()
 ggplot(raw_data, aes(x=complete, y=TOTMMSE4, fill=complete)) +
@@ -66,8 +72,10 @@ ggplot(raw_data, aes(x=complete, y=TOTADL4, fill=complete)) +
   geom_boxplot()
 ggplot(raw_data, aes(x=complete, y=EE46, fill=complete)) +
   geom_boxplot()
+```
 
 #### Density ####
+```{r}
 ggplot(raw_data, aes(x=AGE4, fill=complete)) +
   geom_density(alpha=.25)
 ggplot(raw_data, aes(x=TOTMMSE4, fill=complete)) +
@@ -76,8 +84,10 @@ ggplot(raw_data, aes(x=TOTIADL4, fill=complete)) +
   geom_density(alpha=.25)
 ggplot(raw_data, aes(x=TOTADL4, fill=complete)) +
   geom_density(alpha=.25)
+```
 
 #### Histogram ####
+```{r}
 ggplot() +
   geom_histogram(data=raw_data[-na_rows,], 
                  binwidth = 0.5,
@@ -100,18 +110,22 @@ ggplot() +
            label = "EE46 of Inomplete data",
            fill = 14, 
            color = "white", hjust = 1)
-
+```
 
 ## test if same distribution AGE4, TOTMMSE4, TOTIADL4, TOTADL4, EE46
+```{r}
 ks.test(raw_data$AGE4[-na_rows], raw_data$AGE4[na_rows], na.omit=TRUE)
 ks.test(raw_data$TOTIADL4[-na_rows], raw_data$TOTIADL4[na_rows], na.omit=TRUE)
 ks.test(raw_data$TOTADL4[-na_rows], raw_data$TOTADL4[na_rows], na.omit=TRUE)
 ks.test(raw_data$TOTMMSE4[-na_rows], raw_data$TOTMMSE4[na_rows], na.omit=TRUE)
 ks.test(raw_data$NKIDS4[-na_rows], raw_data$NKIDS4[na_rows], na.omit=TRUE)
 chisq.test(raw_data$EE46, raw_data$complete)
+```
 
 ############################################
+```{r}
 aggregate(raw_data$NKIDS4, by=list(raw_data$complete), mean, na.rm=TRUE)
+```
 
 
 
@@ -126,6 +140,7 @@ aggregate(raw_data$NKIDS4, by=list(raw_data$complete), mean, na.rm=TRUE)
 # column index
 # Categorical variables : GRADE, USBORN, marstat, nkids4, health4, khyper41, mdiab41, nfrac41, u43s, cc43, ee46, hha4, oo49lang, Male
 # indeces : GRADE(2), USBORN(3), MARSTAT4(5), NKIDS4(6), HEALTH4(7), KHYPER41(8),
+```{r}
 contin_idx <- c(4,12,14,15)
 outcome_idx <- c(13)
 cate_na_idx <- c(2,6,8,9,10,11,16,17,18)# index of categorical with missing values
@@ -134,26 +149,10 @@ other_idx <- c(1,21)
 colnames(raw_data[,cate_full_idx])
 
 summary(raw_data)
+```
 
-################## Imputation 1 #########################
-impute_result <- Imputation(raw_data, contin_idx, outcome_idx, cate_na_idx, cate_full_idx)
-
-summary(impute_result$cate_na)
-summary(impute_result$cate_na_knn)
-summary(impute_result$contin_data_knn)
-#### combine data after imputing
-new_data <- cbind(impute_result$outcome, 
-                  impute_result$cate_full, 
-                  impute_result$cate_na_knn, 
-                  impute_result$contin_data_knn)[-impute_result$outcome_na_idx,]
-
-new_data$GRADE <- as.numeric(as.character(new_data$GRADE))
-new_data$NKIDS4 <- as.numeric(as.character(new_data$NKIDS4))
-summary(new_data)
-#############################################################
-
-
-################## Imputation 2 #########################
+################## Imputation  #########################
+```{r}
 # raw_data$GRADE <- as.factor(raw_data$GRADE)
 raw_data$USBORN <- as.factor(raw_data$USBORN)
 # raw_data$AGE4 <- as.factor(raw_data$AGE4)
@@ -164,30 +163,21 @@ raw_data$KHYPER41 <- as.factor(raw_data$KHYPER41)
 raw_data$MDIAB41 <- as.factor(raw_data$MDIAB41)
 raw_data$NFRAC41 <- as.factor(raw_data$NFRAC41)
 raw_data$U43S <- as.factor(raw_data$U43S)
-
 raw_data$CC43 <- ordered(raw_data$CC43) ## order
 raw_data$EE46 <- ordered(raw_data$EE46) ## order
 raw_data$HHA4 <- as.factor(raw_data$HHA4)
 raw_data$OO49LANG <- as.factor(raw_data$OO49LANG)
 raw_data$MALE <- as.factor(raw_data$MALE)
-
-
-
 outcome_na_idx <- which(is.na(raw_data$CESDTOT4))
-
 colnames(raw_data[-c(1,21)])
 mice_tmp <- mice(raw_data[-c(1,21)],m=5,maxit=10,seed=500) ## 4 best result so far
 mice_data <- complete(mice_tmp,4)[-outcome_na_idx,]
 # mice_data <- complete(mice_tmp,5)
 summary(mice_data)
-
 mice_data$HEALTH4 <- factor(mice_data$HEALTH4, ordered = FALSE) ## order
 mice_data$CC43 <- factor(mice_data$CC43, ordered = FALSE) ## order
 mice_data$EE46 <- factor(mice_data$EE46, ordered = FALSE) ## order
-
 new_data <- mice_data
-
-
 table(mice_data$GRADE)
 table(mice_data$NKIDS4)
 t <- lm(CESDTOT4~.,data=mice_data)
@@ -202,6 +192,7 @@ par(mfrow=c(1,1))
 # par(mfrow=c(2,2)) 
 # plot(t)  ## double bow  transform arcsin(sqrt(y))
 # par(mfrow=c(1,1))
+```
 ######################################################
 
 
@@ -216,7 +207,7 @@ par(mfrow=c(1,1))
 # select(CESDTOT4,USBORN,MARSTAT4,HEALTH4,OO49LANG,MALE,GRADE,
 #        NKIDS4,KHYPER41,MDIAB41,NFRAC41,U43S,CC43,EE46,HHA4,AGE4,
 #        TOTMMSE4,TOTIADL4,TOTADL4) %>%
-
+```{r}
 colnames(new_data)
 library("gtsummary")
 new_data %>%
@@ -246,8 +237,10 @@ new_data %>%
                             all_categorical() ~ c(0,2))
   )
 
+```
 
 #### boxplot ####
+```{r}
 p1 <- ggplot(new_data, aes(y=CESDTOT4)) +
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
 p2 <- ggplot(new_data, aes(y=TOTIADL4)) +
@@ -264,8 +257,10 @@ p6 <- ggplot(new_data, aes(y=GRADE)) +
 ggarrange(p1,p2,p3,p4,p5,p6,
           ncol = 3, nrow = 2)
 
+```
 
 ##### density of outcome and continuous variables ####
+```{r}
 ggplot(new_data, aes(x=CESDTOT4)) +
   geom_density(alpha=.5, fill="lightblue", color="blue")
 
@@ -277,9 +272,10 @@ ggplot(new_data, aes(x=AGE4)) +
   geom_density(alpha=.5, fill="lightblue", color="blue")
 ggplot(new_data, aes(x=TOTMMSE4)) +
   geom_density(alpha=.5, fill="lightblue", color="blue")
-
+```
 
 ##### histogram of ordical variables ####
+```{r}
 ggplot(new_data, aes(x=as.factor(GRADE))) +
   geom_histogram(color="lightblue",stat="count", fill="#69b3a2", alpha=0.7)
 ggplot(new_data, aes(x=as.factor(HEALTH4))) +
@@ -289,8 +285,10 @@ ggplot(new_data, aes(x=as.factor(TOTIADL4))) +
 ggplot(new_data, aes(x=as.factor(EE46))) +
   geom_histogram(color="lightblue",stat="count", fill="#69b3a2", alpha=0.7)
 
+```
 
 ##### piechart of categorical variables ####
+```{r}
 p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(EE46),fill=as.factor(EE46)))+ 
   geom_bar(stat = 'identity', position = 'stack', width = 1)
 p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
@@ -300,11 +298,12 @@ p <- ggplot(data=new_data,mapping = aes(x='Content',y=as.factor(MARSTAT4),fill=a
   geom_bar(stat = 'identity', position = 'stack', width = 1)
 p + coord_polar(theta = 'y') + labs(x = 'Category', y = 'number', title = 'pie') + 
   theme(axis.text = element_blank())
-
+```
 
 # psych::pairs.panels(new_data)
 
 ##### outcome vs Xi ####
+```{r}
 ggplot(new_data, aes(x = TOTIADL4, y = CESDTOT4)) + 
   geom_point(color = "blue")+
   geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
@@ -318,8 +317,10 @@ ggplot(new_data, aes(x = TOTMMSE4, y = CESDTOT4)) +
   geom_point(color = "blue")+
   geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
 
+```
 
 ##### outcome vs categorical ####
+```{r}
 ggplot(new_data, aes(x = EE46,y=CESDTOT4)) +
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray")
 ggplot(new_data, aes(x = as.factor(GRADE), y = CESDTOT4)) + 
@@ -351,9 +352,11 @@ ggarrange(p1,p2,
           ncol = 2, nrow = 1)
 
 
+```
 
 #### correlation of covariates ####
 ## just for reference
+```{r}
 library("corrplot")
 summary(new_data)
 contin_idx_cor <- c(1,3,5,11,13,14)
@@ -375,7 +378,7 @@ corrplot.mixed(cormat, lower.col = "black", number.cex = 1,p.mat = pres$p, sig.l
 cor.test(contin_data$TOTIADL4, contin_data$TOTADL4)
 
 table(contin_data$TOTADL4)
-
+```
 ######################################
 
 
@@ -386,6 +389,7 @@ table(contin_data$TOTADL4)
 #            2. do we need to make group for continuous variables ??  eg. AGE IDAL
 #            3. in data there are to major groups (physical health variables and mental health variables)
 #               is there any relationship inside or between physical health variables and mental health variables ??
+```{r}
 head(new_data)
 #2 grade not significant
 M2=lm(CESDTOT4~GRADE,data=new_data)
@@ -393,8 +397,10 @@ summary(M2)
 # not significant
 BM2=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+GRADE,data=new_data)
 summary(BM2)
+```
 
 ## after transform grade could be significant
+```{r}
 table(new_data$GRADE)
 new_data$GRADE_Cat <- 0
 new_data$GRADE_Cat[new_data$GRADE>=6 & new_data$GRADE<=11] <- 1
@@ -531,8 +537,9 @@ summary(M12)
 # significant
 BM12=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+TOTMMSE4,data=new_data)
 summary(BM12)
-
+```
 ## transform is not significant after stepwise
+```{r}
 table(new_data$TOTMMSE4)
 new_data$TOTMMSE4_Cat <- 0
 new_data$TOTMMSE4_Cat[new_data$TOTMMSE4>=17 & new_data$TOTMMSE4<=24] <- 1
@@ -545,8 +552,9 @@ summary(M12)
 BM12=lm(CESDTOT4~TOTIADL4+as.factor(EE46)+TOTMMSE4_Cat,data=new_data)
 summary(BM12)
 
-
+```
 #14 TOTIADL4 significant
+```{r}
 M14=lm(CESDTOT4~TOTIADL4,data=new_data)
 summary(M14)
 
@@ -595,8 +603,6 @@ new_data$EE46_Cat[new_data$EE46==4] <- 1
 M17=lm(CESDTOT4~EE46_Cat,data=new_data)
 summary(M17)
 
-
-
 #18 hha4 -significant
 M18=lm(CESDTOT4~HHA4,data=new_data)
 summary(M18)
@@ -618,9 +624,10 @@ summary(M20)
 BM20<-lm(CESDTOT4~TOTIADL4+as.factor(EE46)+MALE,data=new_data)
 summary(BM20)
 
-
+```
 
 ###############################
+```{r}
 colnames(new_data)
 new_data %>%
   tbl_summary(missing = "no",
@@ -637,10 +644,11 @@ new_data %>%
 
 
 
-
+```
 ##########################
 ##### Building Models ####
 ##########################
+```{r}
 colnames(new_data)
 
 demo_idx <- c(20,2,21,4,18,19) # Grade_Cat USborn Age_Cat Marstat language Male
@@ -672,45 +680,58 @@ physi_idx <- c(29)
 select_data <- new_data[,c(demo_idx,physi_idx,cong_idx,outcome_idx,poi_idx)]
 colnames(select_data)
 summary(select_data)
-
-
-
+```
 #### Full model ####
+```{r}
 full.model <- lm(CESDTOT4~., data = select_data)
 summary(full.model)
-
+```
 ### plots
+```{r}
 par(mfrow=c(2,2)) 
 plot(full.model)  ## sqrt(y)
 par(mfrow=c(1,1))
-### partial regression plot
-avPlots(full.model)
-### Residual plots
-residualPlots(full.model,type="response")
+```
 
+### partial regression plot
+```{r}
+avPlots(full.model)
+```
+### Residual plots
+```{r}
+residualPlots(full.model,type="response")
+```
 
 ##### Transform ####
+```{r}
 select_data$CESDTOT4 <- sqrt(select_data$CESDTOT4)
 full.model.t <- lm(CESDTOT4~., data = select_data)
 summary(full.model.t)
-
+```
 ### plots
+```{r}
 par(mfrow=c(2,2)) 
 plot(full.model.t)
 par(mfrow=c(1,1))
+```
 ### partial regression plot
+```{r}
 avPlots(full.model.t)
+```
 ### Residual plots
+```{r}
 residualPlots(full.model.t,type="response")
-
+```
 
 ### full model doesn't have multicollinearity
+```{r}
 vif_values <- vif(full.model.t)[,1]
 barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "Orchid")
 abline(v = 5, lwd = 3, lty = 2)
 
-
+```
 #### Outliers ####
+```{r}
 full_yhat = full.model.t$fitted.values
 full_res = full.model.t$residuals #m1.yhat-fev
 full_h = hatvalues(full.model.t) #leverage
@@ -734,15 +755,18 @@ tmp <- new_data[which(abs(full_rr) >= 3),]
 
 full.model.t2 <- lm(CESDTOT4~., data = select_data[-which(abs(full_rr) >= 3),])
 summary(full.model.t2)
-
+```
 ### plots
+```{r}
 par(mfrow=c(2,2)) 
 plot(full.model.t2)
 par(mfrow=c(1,1))
 
-
+```
 #### difference after taking out outliers
+```{r}
 (coefficients(full.model.t) - coefficients(full.model.t2))/coefficients(full.model.t)*100
+```
 
 ####################################################
 
@@ -753,39 +777,43 @@ par(mfrow=c(1,1))
 ###################
 #### Diagnosis ####
 ###################
+```{r}
 main.model <- full.model.t
-
+```
 ### plots
+```{r}
 par(mfrow=c(2,2)) 
 plot(main.model)
 par(mfrow=c(1,1))
+```
 ### partial regression plot
+```{r}
 avPlots(main.model)
+```
 ### Residual plots
+```{r}
 residualPlots(main.model,type="response")
-
+```
 ### multicollinearity
+```{r}
 vif_values <- vif(main.model)[,1]
 barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "Orchid")
 abline(v = 10, lwd = 3, lty = 2)
 ggplot(select_data, aes(x = TOTIADL4, y = CESDTOT4)) + 
   geom_point(color = "blue") +
   geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE)
-
-
-
 main_yhat = main.model$fitted.values
 main_res = main.model$residuals #m1.yhat-fev
 main_h = hatvalues(main.model) #leverage
 main_r = rstandard(main.model) #internally studentized residuals
 main_rr = rstudent(main.model) #externally studentized residuals
-
 n = nrow(select_data)
 p = main.model$rank # dimensions
 main_sigma = sqrt( sum(main_res^2)/(n-p) )
 main_z = main_res/main_sigma #standardized residual
-
+```
 ## outlier
+```{r}
 outlier <- rep(0, length(main_z))
 outlier[which(abs(main_rr) >= 3)] <- 1
 sum(outlier)
@@ -793,8 +821,9 @@ outlier <- as.factor(outlier)
 
 qplot(x=main_yhat, y=main_rr, col=outlier)
 
-
+```
 ### normal
+```{r}
 qqPlot(main_z)
 hist(main_z)
 
@@ -803,8 +832,10 @@ ks.test(main_z, "pnorm")
 library('nortest')
 lillie.test(main_z)
 
+```
 
 ### empirical cdf of main_z and N(0,1)
+```{r}
 sample_plot <- data.frame(z=main_z, rn=rnorm(length(main_z)))
 ggplot(sample_plot) +
   stat_ecdf(aes(main_z),color="red", size=1, alpha=0.7) +
@@ -822,33 +853,43 @@ ggplot(sample_plot) +
            label = "cdf of N(0, 1)",
            fill = "blue", 
            color = "white", hjust = 1)
-
+```
 ### independence
+```{r}
 main_res1 <- main_res[1:length(main_res)-1]
 main_res2 <- main_res[2:length(main_res)]
 qplot(x=main_res1, y=main_res2)
-
-
+```
 ################
 # Transform ####
 ################
+```{r}
 summary(main.model)
+```
 ## Scale
+```{r}
 select_data$TOTIADL4 <- scale(select_data$TOTIADL4, scale = FALSE)
 select_data$TOTMMSE4 <- scale(select_data$TOTMMSE4, scale = FALSE)
 main.model2 <- lm(formula = CESDTOT4 ~ .+I(TOTIADL4^2), data = select_data)
 summary(main.model2)
-
+```
 ### plots
+```{r}
 par(mfrow=c(2,2))
 plot(main.model2)
 par(mfrow=c(1,1))
-### partial regression plot
-avPlots(main.model2)
-### Residual plots
-residualPlots(main.model2,type="response")
 
+```
+### partial regression plot
+```{r}
+avPlots(main.model2)
+```
+### Residual plots
+```{r}
+residualPlots(main.model2,type="response")
+```
 ### multicollinearity
+```{r}
 vif_values <- vif(main.model2)[,1]
 barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "Orchid")
 abline(v = 10, lwd = 3, lty = 2)
@@ -866,8 +907,9 @@ n = nrow(select_data)
 p = main.model2$rank # dimensions
 main_sigma2 = sqrt( sum(main_res2^2)/(n-p) )
 main_z2 = main_res2/main_sigma2 #standardized residual
-
+```
 ## outlier
+```{r}
 outlier <- rep(0, length(main_z2))
 outlier[which(abs(main_rr2) >= 3)] <- 1
 sum(outlier)
@@ -876,8 +918,9 @@ outlier <- as.factor(outlier)
 qplot(x=main_yhat2, y=main_rr2, col=outlier,
       xlab="Fitted values", ylab="External studentized residuals")
 
-
+```
 ### normal
+```{r}
 qqPlot(main_z2)
 hist(main_z2)
 
@@ -886,18 +929,19 @@ ks.test(main_z2, "pnorm")
 library('nortest')
 lillie.test(main_z2)
 
-
+```
 ####################################
 #### Age_Cat significant _> not ####
 ####################################
 ## possible reason: relationship between Age_Cat and IADL
-
+```{r}
 kruskal.test(select_data$AGE4_Cat, select_data$TOTIADL4)
 ggplot(select_data, aes(x = AGE4_Cat, y = TOTIADL4)) + 
   geom_boxplot(fill="lightgreen", alpha=0.7, color="DarkSlateGray") +
   ggtitle("TOTIADL4 vs. AGE4_Cat")
-
+```
 ## sequential
+```{r}
 lr1 <- lm(CESDTOT4~GRADE_Cat+USBORN+AGE4_Cat+MARSTAT4+OO49LANG+MALE, data = select_data)
 summary(lr1)
 lr2 <- lm(CESDTOT4~GRADE_Cat+USBORN+AGE4_Cat+MARSTAT4+OO49LANG+MALE+
@@ -947,19 +991,20 @@ anova(lr1,lr2)
 anova(lr2,lr3)
 anova(lr3,lr4)
 
-
+```
 
 #####################
 #### Interaction ####
 #####################
+```{r}
 summary(main.model)
 summary(main.model2)
 write.csv(select_data, "E:/Biostat Study/BIOSTAT 650/Group Project/select_data.csv")
 summary(select_data)
-
 main.model2$terms[[3]]
-
+```
 #### interaction discovery
+```{r}
 p1 <- ggplot(select_data[select_data$MARSTAT4==1,], aes(x=TOTIADL4,y=CESDTOT4)) +
   geom_point(color = "blue")+
   geom_smooth(method = lm, color = "red", fill="#69b3a2", se = TRUE, size=2) +
@@ -988,16 +1033,24 @@ annotate_figure(p, top = text_grob("CESDTOT4 vs. TOTIADL4 of Different Marital S
 inter.model <- lm(formula = CESDTOT4 ~ .+I(TOTIADL4^2) + TOTIADL4*MARSTAT4, data = select_data)
 summary(inter.model)
 anova(inter.model)
+```
 ### plots
+```{r}
 par(mfrow=c(2,2))
 plot(inter.model)
 par(mfrow=c(1,1))
+```
 ### partial regression plot
+```{r}
 avPlots(inter.model)
+```
 ### Residual plots
+```{r}
 residualPlots(inter.model)
-
+```
 ### multicollinearity
+
+```{r}
 vif_values <- vif(inter.model,type = 'predictor')[,1]
 barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "Orchid")
 abline(v = 10, lwd = 3, lty = 2)
@@ -1012,8 +1065,10 @@ n = nrow(select_data)
 p = inter.model$rank # dimensions
 inter_sigma = sqrt( sum(inter_res^2)/(n-p) )
 inter_z = inter_res/inter_sigma #standardized residual
+```
 
 ## outlier
+```{r}
 outlier <- rep(0, length(inter_z))
 outlier[which(abs(inter_rr) >= 3)] <- 1
 sum(outlier)
@@ -1026,13 +1081,14 @@ qplot(x=inter_yhat, y=inter_rr, col=outlier,
 
 
 cooksd <- cooks.distance(inter.model)
-plot(cooksd, pch="*", cex=2, main="Influential Obs by Cooks distance")  # 绘制Cook距离
-abline(h = 0.01, col="red")  # 添加决策线
-text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>0.01,names(cooksd),""), col="red")  # 添加标签
+plot(cooksd, pch="*", cex=2, main="Influential Obs by Cooks distance") 
+abline(h = 0.01, col="red")  
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>0.01,names(cooksd),""), col="red")  
 
-
+```
 
 ### normal
+```{r}
 qqPlot(inter_z, main='QQplot of Standardized Residuals')
 hist(inter_z)
 
@@ -1040,19 +1096,16 @@ shapiro.test(inter_z) ## reject but only for small sample size (<50)
 ks.test(inter_z, "pnorm")
 library('nortest')
 lillie.test(inter_z)
-
+```
 ### independence
+```{r}
 inter_res1 <- inter_res[1:length(inter_res)-1]
 inter_res2 <- inter_res[2:length(inter_res)]
 qplot(x=inter_res1, y=inter_res2,col='red',xlab='res i-i', ylab='res i', 
       main='residual i vs. residual i-1')
 
-
-
-
 tmp <- summary(inter.model)$coefficients
 write.csv(tmp, "E:/Biostat Study/BIOSTAT 650/Group Project/coef_table.csv")
-
 
 # mean quantile
 aggregate(new_data$CESDTOT4, by=list(select_data$AGE4_Cat), mean)
@@ -1060,5 +1113,5 @@ M20=lm(CESDTOT4~Chronic,data=select_data)
 summary(M20)
 anova(M20)
 
-
+```
 
